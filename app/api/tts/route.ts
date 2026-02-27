@@ -51,9 +51,6 @@ export async function POST(req: NextRequest) {
     },
   };
 
-  if (temperature !== undefined && temperature !== null) {
-    (requestBody.audioConfig as Record<string, unknown>).temperature = temperature;
-  }
 
   let response: Response;
   try {
