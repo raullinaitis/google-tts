@@ -980,28 +980,13 @@ export default function Home() {
                         <p className="text-[9px] uppercase tracking-[0.15em]" style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
                           {batchStyles.length} Styles Generated
                         </p>
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={handleGenerateAllStyles}
-                            disabled={loading || !text.trim() || selectedVoices.length === 0}
-                            className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-all duration-150"
-                            style={{
-                              background: loading || !text.trim() || selectedVoices.length === 0 ? "var(--bg-surface)" : "var(--accent-dim)",
-                              border: `1px solid ${loading || !text.trim() || selectedVoices.length === 0 ? "var(--border-subtle)" : "color-mix(in srgb, var(--accent) 30%, transparent)"}`,
-                              color: loading || !text.trim() || selectedVoices.length === 0 ? "var(--text-muted)" : "var(--accent)",
-                              cursor: loading || !text.trim() || selectedVoices.length === 0 ? "not-allowed" : "pointer",
-                            }}
-                          >
-                            {loading ? "Generating..." : `Generate All (${batchStyles.length * selectedVoices.length})`}
-                          </button>
-                          <button
-                            onClick={() => setBatchStyles([])}
-                            className="px-2 py-1 rounded-md text-[10px] transition-all duration-150"
-                            style={{ background: "var(--bg-surface)", color: "var(--text-muted)" }}
-                          >
-                            Clear
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => setBatchStyles([])}
+                          className="px-2 py-1 rounded-md text-[10px] transition-all duration-150"
+                          style={{ background: "var(--bg-surface)", color: "var(--text-muted)" }}
+                        >
+                          Clear
+                        </button>
                       </div>
                       <div className="max-h-[300px] overflow-y-auto space-y-1.5 rounded-md">
                         {batchStyles.map((style, i) => (
@@ -1037,6 +1022,27 @@ export default function Home() {
                           </div>
                         ))}
                       </div>
+                      {/* Generate All - prominent button */}
+                      <button
+                        onClick={handleGenerateAllStyles}
+                        disabled={loading || !text.trim() || selectedVoices.length === 0}
+                        className="w-full py-2 rounded-md text-[11px] font-bold uppercase tracking-[0.1em] transition-all duration-150"
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          background: loading || !text.trim() || selectedVoices.length === 0 ? "var(--bg-surface)" : "var(--accent)",
+                          border: `1px solid ${loading || !text.trim() || selectedVoices.length === 0 ? "var(--border-subtle)" : "var(--accent)"}`,
+                          color: loading || !text.trim() || selectedVoices.length === 0 ? "var(--text-muted)" : "var(--bg-primary)",
+                          cursor: loading || !text.trim() || selectedVoices.length === 0 ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {loading
+                          ? "Generating..."
+                          : !text.trim()
+                            ? "Enter text below first"
+                            : selectedVoices.length === 0
+                              ? "Select voices first"
+                              : `Generate All ${batchStyles.length} Styles × ${selectedVoices.length} Voice${selectedVoices.length > 1 ? "s" : ""}`}
+                      </button>
                     </div>
                   )}
                 </div>
