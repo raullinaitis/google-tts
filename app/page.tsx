@@ -233,7 +233,15 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 /* ════════════════════════════════════════════════════════════════ */
 
+const QUICK_PRESET = {
+  model: "gemini-2.5-pro-preview-tts",
+  modelLabel: "Pro",
+  voice: "Enceladus",
+  customStyle: "Adopt the persona of an expert friend explaining a secret. The tone must be confident, grounded, and genuinely curious. Energy should be calm but engaging (6\u20137/10), with no hype or sales tone. Maintain a slightly upbeat pace, but use natural, varying speeds (faster when excited, slower to emphasize). Crucially, the delivery must sound unscripted and conversational, incorporating small pauses and subtle disfluencies (light \u201cuh\u201d or \u201cyou know,\u201d occasional rephrasing). The underlying emotion should be subtle warmth and discovery. Conclude the final sentence with a firm, confident downward inflection.",
+};
+
 export default function Home() {
+  const [mode, setMode] = useState<"quick" | "advanced">("quick");
   const [model, setModel] = useState(MODELS[0].id);
   const [selectedVoices, setSelectedVoices] = useState<string[]>([
     MALE_VOICES[0].name,
@@ -617,6 +625,63 @@ export default function Home() {
   const canGenerate =
     !loading && !textTooLong && text.trim().length > 0 && selectedVoices.length > 0;
 
+  const canQuickGenerate = !loading && !textTooLong && text.trim().length > 0;
+
+  async function handleQuickGenerate() {
+    setError("");
+    results.forEach((r) => {
+      if (r.audioUrl) URL.revokeObjectURL(r.audioUrl);
+    });
+    setLoading(true);
+    const id = `${QUICK_PRESET.voice}-${Date.now()}`;
+    const newResults: GeneratedAudio[] = [{
+      id,
+      voice: QUICK_PRESET.voice,
+      model: QUICK_PRESET.model,
+      modelLabel: QUICK_PRESET.modelLabel,
+      stylePreset: "",
+      styleLabel: "Expert Friend",
+      customStyle: QUICK_PRESET.customStyle,
+      audioUrl: "",
+      status: "loading",
+    }];
+    setResults(newResults);
+
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: QUICK_PRESET.model,
+          voice: QUICK_PRESET.voice,
+          stylePreset: "",
+          customStyle: QUICK_PRESET.customStyle,
+          text,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResults((prev) =>
+          prev.map((r) => r.id === id ? { ...r, status: "error", error: data.error || "Failed" } : r)
+        );
+      } else {
+        const blob = new Blob(
+          [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
+          { type: data.mimeType }
+        );
+        const url = URL.createObjectURL(blob);
+        setResults((prev) =>
+          prev.map((r) => r.id === id ? { ...r, status: "done", audioUrl: url, audioBlob: blob } : r)
+        );
+      }
+    } catch {
+      setResults((prev) =>
+        prev.map((r) => r.id === id ? { ...r, status: "error", error: "Network error" } : r)
+      );
+    }
+    setLoading(false);
+  }
+
   return (
     <div className="h-screen flex flex-col" style={{ background: "var(--bg-primary)" }}>
       {/* Ambient glow */}
@@ -658,6 +723,99 @@ export default function Home() {
           className="w-[420px] shrink-0 overflow-y-auto p-5 space-y-5"
           style={{ borderRight: "1px solid var(--border-dim)" }}
         >
+          {/* Mode tabs */}
+          <div className="flex gap-1 p-1 rounded-lg" style={{ background: "var(--bg-surface)" }}>
+            {(["quick", "advanced"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-200 capitalize"
+                style={{
+                  background: mode === m ? "var(--bg-raised)" : "transparent",
+                  color: mode === m ? "var(--text-primary)" : "var(--text-muted)",
+                  boxShadow: mode === m ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
+                }}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+
+          {/* ═══ QUICK MODE ═══ */}
+          {mode === "quick" && (
+            <>
+              {/* Preset info */}
+              <div
+                className="rounded-lg px-3 py-2.5 space-y-1.5"
+                style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)" }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Tag color="var(--accent)">{QUICK_PRESET.modelLabel}</Tag>
+                  <Tag>{QUICK_PRESET.voice}</Tag>
+                  <Tag color="var(--accent-secondary)">Expert Friend</Tag>
+                </div>
+              </div>
+
+              {/* Text */}
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <SectionLabel>Text</SectionLabel>
+                  <span
+                    className="text-[10px] tabular-nums"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      color: textTooLong ? "var(--danger)" : "var(--text-muted)",
+                    }}
+                  >
+                    {textBytes}/{MAX_BYTES}
+                  </span>
+                </div>
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  rows={6}
+                  placeholder="Enter the text you want to convert to speech..."
+                  className="w-full rounded-lg px-3 py-2.5 text-[12px] leading-relaxed placeholder:opacity-25 focus:outline-none resize-y transition-all duration-200"
+                  style={{
+                    background: "var(--bg-surface)",
+                    border: `1px solid ${textTooLong ? "var(--danger)" : "var(--border-subtle)"}`,
+                    color: "var(--text-primary)",
+                  }}
+                />
+              </div>
+
+              {/* Generate */}
+              <button
+                onClick={handleQuickGenerate}
+                disabled={!canQuickGenerate}
+                className={`w-full py-3 rounded-xl text-[12px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
+                  loading ? "pulse-glow" : ""
+                }`}
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  background: loading ? "var(--accent-dim)" : canQuickGenerate ? "var(--accent)" : "var(--bg-surface)",
+                  color: loading ? "var(--accent)" : canQuickGenerate ? "var(--bg-primary)" : "var(--text-muted)",
+                  cursor: canQuickGenerate ? "pointer" : "not-allowed",
+                  opacity: canQuickGenerate || loading ? 1 : 0.4,
+                }}
+              >
+                {loading ? "Generating..." : "Generate"}
+              </button>
+
+              {error && (
+                <div
+                  className="rounded-lg px-3 py-2 text-[11px] animate-fade-in"
+                  style={{ background: "var(--danger-dim)", border: "1px solid var(--danger)", color: "var(--danger)" }}
+                >
+                  {error}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ═══ ADVANCED MODE ═══ */}
+          {mode === "advanced" && (
+            <>
           {/* Model */}
           <div>
             <SectionLabel>Model</SectionLabel>
@@ -1119,6 +1277,8 @@ export default function Home() {
             >
               {error}
             </div>
+          )}
+            </>
           )}
         </aside>
 
