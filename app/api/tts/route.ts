@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { model, voice, stylePreset, customStyle, temperature, text } =
-    await req.json();
+  let body: {
+    model: string;
+    voice: string;
+    stylePreset: string;
+    customStyle: string;
+    temperature: number;
+    text: string;
+  };
+
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const { model, voice, stylePreset, customStyle, temperature, text } = body;
+
+  if (!text?.trim()) {
+    return NextResponse.json({ error: "text is required" }, { status: 400 });
+  }
 
   // Build the style prompt
   const promptParts: string[] = [];
@@ -18,7 +36,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body: Record<string, unknown> = {
+  const requestBody: Record<string, unknown> = {
     input: {
       text,
       ...(prompt ? { prompt } : {}),
@@ -34,17 +52,25 @@ export async function POST(req: NextRequest) {
   };
 
   if (temperature !== undefined && temperature !== null) {
-    (body.audioConfig as Record<string, unknown>).temperature = temperature;
+    (requestBody.audioConfig as Record<string, unknown>).temperature = temperature;
   }
 
-  const response = await fetch(
-    `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      }
+    );
+  } catch {
+    return NextResponse.json(
+      { error: "Network error contacting Google TTS" },
+      { status: 502 }
+    );
+  }
 
   if (!response.ok) {
     const error = await response.text();
