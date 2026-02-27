@@ -98,6 +98,7 @@ function AudioCard({
   timestamp,
   onDownload,
   onDelete,
+  onPlay,
 }: {
   voice: string;
   modelLabel: string;
@@ -111,6 +112,7 @@ function AudioCard({
   timestamp?: string;
   onDownload: () => void;
   onDelete?: () => void;
+  onPlay?: (el: HTMLAudioElement) => void;
 }) {
   return (
     <div
@@ -180,7 +182,13 @@ function AudioCard({
       )}
       {status === "done" && (
         <div className="space-y-2">
-          <audio ref={audioRef} src={audioUrl} controls className="w-full" />
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            controls
+            className="w-full"
+            onPlay={(e) => onPlay?.(e.currentTarget)}
+          />
           <button
             onClick={onDownload}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150"
@@ -245,6 +253,14 @@ export default function Home() {
   const [results, setResults] = useState<GeneratedAudio[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const firstAudioRef = useRef<HTMLAudioElement>(null);
+  const allAudioRefs = useRef<Set<HTMLAudioElement>>(new Set());
+
+  const handleAudioPlay = useCallback((el: HTMLAudioElement) => {
+    allAudioRefs.current.add(el);
+    allAudioRefs.current.forEach((other) => {
+      if (other !== el) other.pause();
+    });
+  }, []);
 
   const textBytes = byteLength(text);
   const textTooLong = textBytes > MAX_BYTES;
@@ -958,6 +974,7 @@ export default function Home() {
                   status={r.status}
                   error={r.error}
                   onDownload={() => handleDownload(r.audioUrl, r.voice)}
+                  onPlay={handleAudioPlay}
                 />
               ))}
             </div>
@@ -1016,6 +1033,7 @@ export default function Home() {
                   timestamp={timeAgo(h.createdAt)}
                   onDownload={() => handleDownload(h.audioUrl, h.voice)}
                   onDelete={() => handleDeleteHistoryItem(h.id)}
+                  onPlay={handleAudioPlay}
                 />
               ))}
             </div>
