@@ -295,20 +295,31 @@ export default function Home() {
 
   const generateForVoice = useCallback(
     async (voice: string, id: string) => {
-      try {
+      const attempt = async (): Promise<boolean> => {
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model, voice, stylePreset, customStyle, text }),
         });
         const data = await res.json();
+        if (res.status === 429) {
+          // Parse retryDelay from error details, fall back to 10s
+          const retryDelaySecs =
+            data?.error?.details?.find(
+              (d: { "@type": string; retryDelay?: string }) =>
+                d["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
+            )?.retryDelay?.replace("s", "") ?? "10";
+          const ms = Math.ceil(parseFloat(retryDelaySecs)) * 1000;
+          await new Promise((r) => setTimeout(r, ms));
+          return false; // signal: retry
+        }
         if (!res.ok) {
           setResults((prev) =>
             prev.map((r) =>
               r.id === id ? { ...r, status: "error", error: data.error || "Failed" } : r
             )
           );
-          return;
+          return true; // signal: done (with error)
         }
         const blob = new Blob(
           [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
@@ -320,6 +331,20 @@ export default function Home() {
             r.id === id ? { ...r, status: "done", audioUrl: url, audioBlob: blob } : r
           )
         );
+        return true; // signal: done (success)
+      };
+
+      try {
+        let done = await attempt();
+        if (!done) done = await attempt(); // retry once after delay
+        if (!done) {
+          // second attempt also got 429
+          setResults((prev) =>
+            prev.map((r) =>
+              r.id === id ? { ...r, status: "error", error: "Rate limit exceeded, try again shortly" } : r
+            )
+          );
+        }
       } catch {
         setResults((prev) =>
           prev.map((r) =>
@@ -385,9 +410,16 @@ export default function Home() {
       status: "loading",
     }));
     setResults(newResults);
-    await Promise.allSettled(
-      newResults.map((r) => generateForVoice(r.voice, r.id))
-    );
+    // Max 5 concurrent requests to avoid hitting RPM limits
+    const CONCURRENCY = 5;
+    const queue = [...newResults];
+    const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+      while (queue.length > 0) {
+        const r = queue.shift()!;
+        await generateForVoice(r.voice, r.id);
+      }
+    });
+    await Promise.allSettled(workers);
     setLoading(false);
   }
 
