@@ -247,6 +247,8 @@ export default function Home() {
   const [styleRefine, setStyleRefine] = useState("");
   const [styleLoading, setStyleLoading] = useState(false);
   const [styleError, setStyleError] = useState("");
+  const [batchStyles, setBatchStyles] = useState<string[]>([]);
+  const [batchStylesLoading, setBatchStylesLoading] = useState(false);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -498,6 +500,118 @@ export default function Home() {
     } finally {
       setStyleLoading(false);
     }
+  }
+
+  async function handleGenerateBatchStyles() {
+    if (!styleDescription.trim()) return;
+    setBatchStylesLoading(true);
+    setStyleError("");
+    setBatchStyles([]);
+    try {
+      const res = await fetch("/api/generate-styles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: styleDescription }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStyleError(data.error || "Failed to generate styles");
+        return;
+      }
+      setBatchStyles(data.styles);
+    } catch {
+      setStyleError("Network error");
+    } finally {
+      setBatchStylesLoading(false);
+    }
+  }
+
+  async function handleGenerateAllStyles() {
+    if (batchStyles.length === 0 || selectedVoices.length === 0 || !text.trim()) return;
+    setError("");
+    results.forEach((r) => {
+      if (r.audioUrl) URL.revokeObjectURL(r.audioUrl);
+    });
+    setLoading(true);
+
+    const newResults: GeneratedAudio[] = batchStyles.flatMap((style, styleIdx) =>
+      selectedVoices.map((voice) => ({
+        id: `${voice}-style${styleIdx}-${Date.now()}`,
+        voice,
+        model,
+        modelLabel,
+        stylePreset: "",
+        styleLabel: `Style ${styleIdx + 1}`,
+        customStyle: style,
+        audioUrl: "",
+        status: "loading" as const,
+      }))
+    );
+    setResults(newResults);
+
+    const CONCURRENCY = 5;
+    const queue = [...newResults];
+    const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+      while (queue.length > 0) {
+        const r = queue.shift()!;
+        const attempt = async (): Promise<boolean> => {
+          const res = await fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model, voice: r.voice, stylePreset: "", customStyle: r.customStyle, text }),
+          });
+          const data = await res.json();
+          if (res.status === 429) {
+            const retryDelaySecs =
+              data?.error?.details?.find(
+                (d: { "@type": string; retryDelay?: string }) =>
+                  d["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
+              )?.retryDelay?.replace("s", "") ?? "10";
+            const ms = Math.ceil(parseFloat(retryDelaySecs)) * 1000;
+            await new Promise((resolve) => setTimeout(resolve, ms));
+            return false;
+          }
+          if (!res.ok) {
+            setResults((prev) =>
+              prev.map((x) =>
+                x.id === r.id ? { ...x, status: "error", error: data.error || "Failed" } : x
+              )
+            );
+            return true;
+          }
+          const blob = new Blob(
+            [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
+            { type: data.mimeType }
+          );
+          const url = URL.createObjectURL(blob);
+          setResults((prev) =>
+            prev.map((x) =>
+              x.id === r.id ? { ...x, status: "done", audioUrl: url, audioBlob: blob } : x
+            )
+          );
+          return true;
+        };
+        try {
+          let done = await attempt();
+          if (!done) done = await attempt();
+          if (!done) {
+            setResults((prev) =>
+              prev.map((x) =>
+                x.id === r.id ? { ...x, status: "error", error: "Rate limit exceeded, try again shortly" } : x
+              )
+            );
+          }
+        } catch {
+          setResults((prev) =>
+            prev.map((x) =>
+              x.id === r.id ? { ...x, status: "error", error: "Network error" } : x
+            )
+          );
+        }
+      }
+    });
+    await Promise.allSettled(workers);
+    setLoading(false);
   }
 
   const canGenerate =
@@ -761,6 +875,7 @@ export default function Home() {
                             setStyleDescription("");
                             setStyleRefine("");
                             setStyleError("");
+                            setBatchStyles([]);
                           }}
                           className="px-3 py-1.5 rounded-md text-[11px] transition-all duration-150"
                           style={{ background: "var(--bg-surface)", color: "var(--text-muted)" }}
@@ -823,24 +938,106 @@ export default function Home() {
                           color: "var(--text-primary)",
                         }}
                       />
-                      <button
-                        onClick={() => handleGenerateStyle(styleDescription)}
-                        disabled={styleLoading || !styleDescription.trim()}
-                        className="w-full py-1.5 rounded-md text-[11px] font-medium transition-all duration-150"
-                        style={{
-                          background: styleLoading || !styleDescription.trim() ? "var(--bg-surface)" : "var(--accent-secondary-dim)",
-                          border: `1px solid ${styleLoading || !styleDescription.trim() ? "var(--border-subtle)" : "color-mix(in srgb, var(--accent-secondary) 30%, transparent)"}`,
-                          color: styleLoading || !styleDescription.trim() ? "var(--text-muted)" : "var(--accent-secondary)",
-                          cursor: styleLoading || !styleDescription.trim() ? "not-allowed" : "pointer",
-                        }}
-                      >
-                        {styleLoading ? "Generating..." : "✦ Generate Style"}
-                      </button>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleGenerateStyle(styleDescription)}
+                          disabled={styleLoading || batchStylesLoading || !styleDescription.trim()}
+                          className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150"
+                          style={{
+                            background: styleLoading || batchStylesLoading || !styleDescription.trim() ? "var(--bg-surface)" : "var(--accent-secondary-dim)",
+                            border: `1px solid ${styleLoading || batchStylesLoading || !styleDescription.trim() ? "var(--border-subtle)" : "color-mix(in srgb, var(--accent-secondary) 30%, transparent)"}`,
+                            color: styleLoading || batchStylesLoading || !styleDescription.trim() ? "var(--text-muted)" : "var(--accent-secondary)",
+                            cursor: styleLoading || batchStylesLoading || !styleDescription.trim() ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {styleLoading ? "Generating..." : "✦ Generate Style"}
+                        </button>
+                        <button
+                          onClick={handleGenerateBatchStyles}
+                          disabled={styleLoading || batchStylesLoading || !styleDescription.trim()}
+                          className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150"
+                          style={{
+                            background: styleLoading || batchStylesLoading || !styleDescription.trim() ? "var(--bg-surface)" : "var(--accent-dim)",
+                            border: `1px solid ${styleLoading || batchStylesLoading || !styleDescription.trim() ? "var(--border-subtle)" : "color-mix(in srgb, var(--accent) 30%, transparent)"}`,
+                            color: styleLoading || batchStylesLoading || !styleDescription.trim() ? "var(--text-muted)" : "var(--accent)",
+                            cursor: styleLoading || batchStylesLoading || !styleDescription.trim() ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {batchStylesLoading ? "Generating..." : "✦ 10 Styles"}
+                        </button>
+                      </div>
                     </>
                   )}
 
                   {styleError && (
                     <p className="text-[10px]" style={{ color: "var(--danger)" }}>{styleError}</p>
+                  )}
+
+                  {/* Batch styles results */}
+                  {batchStyles.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[9px] uppercase tracking-[0.15em]" style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                          {batchStyles.length} Styles Generated
+                        </p>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={handleGenerateAllStyles}
+                            disabled={loading || !text.trim() || selectedVoices.length === 0}
+                            className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-all duration-150"
+                            style={{
+                              background: loading || !text.trim() || selectedVoices.length === 0 ? "var(--bg-surface)" : "var(--accent-dim)",
+                              border: `1px solid ${loading || !text.trim() || selectedVoices.length === 0 ? "var(--border-subtle)" : "color-mix(in srgb, var(--accent) 30%, transparent)"}`,
+                              color: loading || !text.trim() || selectedVoices.length === 0 ? "var(--text-muted)" : "var(--accent)",
+                              cursor: loading || !text.trim() || selectedVoices.length === 0 ? "not-allowed" : "pointer",
+                            }}
+                          >
+                            {loading ? "Generating..." : `Generate All (${batchStyles.length * selectedVoices.length})`}
+                          </button>
+                          <button
+                            onClick={() => setBatchStyles([])}
+                            className="px-2 py-1 rounded-md text-[10px] transition-all duration-150"
+                            style={{ background: "var(--bg-surface)", color: "var(--text-muted)" }}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto space-y-1.5 rounded-md">
+                        {batchStyles.map((style, i) => (
+                          <div
+                            key={i}
+                            className="rounded-md px-3 py-2 text-[11px] leading-relaxed group/style"
+                            style={{
+                              background: "var(--bg-primary)",
+                              border: "1px solid var(--border-subtle)",
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="text-[9px] font-medium shrink-0 mt-0.5" style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                                {i + 1}.
+                              </span>
+                              <p className="flex-1 min-w-0">{style}</p>
+                              <button
+                                onClick={() => {
+                                  setCustomStyle(style);
+                                  setStyleCreatorOpen(false);
+                                }}
+                                className="shrink-0 px-2 py-0.5 rounded text-[9px] font-medium opacity-0 group-hover/style:opacity-100 transition-all duration-150"
+                                style={{
+                                  background: "var(--accent-secondary-dim)",
+                                  color: "var(--accent-secondary)",
+                                  border: "1px solid color-mix(in srgb, var(--accent-secondary) 20%, transparent)",
+                                }}
+                              >
+                                Use
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
