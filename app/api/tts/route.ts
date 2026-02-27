@@ -65,11 +65,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "API key not configured" }, { status: 500 });
   }
 
-  // Build the prompt: style tags + custom style + actual text
-  const promptParts: string[] = [];
-  if (stylePreset) promptParts.push(stylePreset);
-  if (customStyle?.trim()) promptParts.push(customStyle.trim());
-  const styleInstruction = promptParts.join(" ");
+  // Custom style overrides preset; if no custom style, use preset
+  const styleInstruction = customStyle?.trim() || stylePreset || "";
   // "Say: " prefix is required — without it the model tries to generate text instead of speech
   const fullPrompt = styleInstruction
     ? `${styleInstruction}: ${text}`
