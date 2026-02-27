@@ -1,65 +1,280 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef } from "react";
+import {
+  MODELS,
+  MALE_VOICES,
+  FEMALE_VOICES,
+  STYLE_PRESETS,
+} from "@/lib/voices";
+
+const MAX_BYTES = 4000;
+
+function byteLength(str: string): number {
+  return new TextEncoder().encode(str).length;
+}
 
 export default function Home() {
+  const [model, setModel] = useState(MODELS[0].id);
+  const [voice, setVoice] = useState(MALE_VOICES[0].name);
+  const [stylePreset, setStylePreset] = useState(STYLE_PRESETS[0].tag);
+  const [customStyle, setCustomStyle] = useState("");
+  const [temperature, setTemperature] = useState(1.0);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  const textBytes = byteLength(text);
+  const textTooLong = textBytes > MAX_BYTES;
+
+  async function handleGenerate() {
+    setError("");
+    setAudioUrl("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          voice,
+          stylePreset,
+          customStyle,
+          temperature,
+          text,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Generation failed, please try again.");
+        return;
+      }
+
+      const blob = new Blob(
+        [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
+        { type: data.mimeType }
+      );
+      const url = URL.createObjectURL(blob);
+      setAudioUrl(url);
+      setTimeout(() => audioRef.current?.play(), 100);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDownload() {
+    if (!audioUrl) return;
+    const a = document.createElement("a");
+    a.href = audioUrl;
+    a.download = `tts-${voice}-${Date.now()}.mp3`;
+    a.click();
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-gray-950 text-gray-100 p-6 md:p-12">
+      <div className="max-w-3xl mx-auto space-y-8">
+        <h1 className="text-3xl font-bold tracking-tight">Gemini TTS</h1>
+
+        {/* Model selector */}
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            Model
+          </h2>
+          <div className="flex gap-3 flex-wrap">
+            {MODELS.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setModel(m.id)}
+                className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  model === m.id
+                    ? "bg-indigo-600 border-indigo-600 text-white"
+                    : "bg-gray-800 border-gray-700 text-gray-300 hover:border-indigo-500"
+                }`}
+              >
+                <span className="font-semibold">{m.label}</span>
+                <span className="ml-2 text-xs opacity-70">{m.description}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Voice selector */}
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            Voice
+          </h2>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Male */}
+            <div>
+              <p className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-2">
+                Male
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {MALE_VOICES.map((v) => (
+                  <button
+                    key={v.name}
+                    onClick={() => setVoice(v.name)}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      voice === v.name
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    }`}
+                  >
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Female */}
+            <div>
+              <p className="text-xs font-semibold text-pink-400 uppercase tracking-widest mb-2">
+                Female
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {FEMALE_VOICES.map((v) => (
+                  <button
+                    key={v.name}
+                    onClick={() => setVoice(v.name)}
+                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                      voice === v.name
+                        ? "bg-pink-600 text-white"
+                        : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    }`}
+                  >
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Style presets */}
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            Style Preset
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {STYLE_PRESETS.map((s) => (
+              <button
+                key={s.label}
+                onClick={() => setStylePreset(s.tag)}
+                className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                  stylePreset === s.tag
+                    ? "bg-violet-600 text-white"
+                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Custom style */}
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            Custom Style{" "}
+            <span className="normal-case font-normal text-gray-500">
+              (optional — e.g. &ldquo;speak warmly and slowly&rdquo;)
+            </span>
+          </h2>
+          <input
+            type="text"
+            value={customStyle}
+            onChange={(e) => setCustomStyle(e.target.value)}
+            placeholder="e.g. speak with a British accent, slowly"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+          />
+        </section>
+
+        {/* Temperature */}
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            Temperature{" "}
+            <span className="normal-case font-normal text-gray-500">
+              ({temperature.toFixed(1)} — lower = more consistent, higher =
+              more varied)
+            </span>
+          </h2>
+          <input
+            type="range"
+            min="0"
+            max="2"
+            step="0.1"
+            value={temperature}
+            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+            className="w-full accent-indigo-500"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0.0 (consistent)</span>
+            <span>2.0 (varied)</span>
+          </div>
+        </section>
+
+        {/* Text input */}
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
+            Text to Speak
+          </h2>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            placeholder="Enter the text you want to convert to speech..."
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 resize-y"
+          />
+          <p
+            className={`text-xs mt-1 text-right ${
+              textTooLong
+                ? "text-red-400 font-semibold"
+                : "text-gray-500"
+            }`}
+          >
+            {textBytes} / {MAX_BYTES} bytes
+            {textTooLong && " — text is too long"}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        </section>
+
+        {/* Generate button */}
+        <button
+          onClick={handleGenerate}
+          disabled={loading || textTooLong || text.trim().length === 0}
+          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-base transition-colors"
+        >
+          {loading ? "Generating..." : "Generate Speech"}
+        </button>
+
+        {/* Error */}
+        {error && (
+          <p className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-lg px-4 py-3">
+            {error}
+          </p>
+        )}
+
+        {/* Audio player */}
+        {audioUrl && (
+          <section className="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">
+              Generated Audio
+            </h2>
+            <audio ref={audioRef} src={audioUrl} controls className="w-full" />
+            <button
+              onClick={handleDownload}
+              className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm text-white transition-colors"
+            >
+              Download MP3
+            </button>
+          </section>
+        )}
+      </div>
+    </main>
   );
 }
