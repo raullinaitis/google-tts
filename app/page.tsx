@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   MODELS,
   MALE_VOICES,
@@ -28,6 +28,19 @@ export default function Home() {
 
   const textBytes = byteLength(text);
   const textTooLong = textBytes > MAX_BYTES;
+
+  // Revoke the blob URL when it changes or the component unmounts to avoid memory leaks.
+  // Also trigger autoplay whenever a new URL is set.
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+      audioRef.current.play().catch(() => {
+        // Autoplay blocked by browser policy — not an error
+      });
+    }
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   async function handleGenerate() {
     setError("");
@@ -59,9 +72,11 @@ export default function Home() {
         [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
         { type: data.mimeType }
       );
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
       const url = URL.createObjectURL(blob);
       setAudioUrl(url);
-      setTimeout(() => audioRef.current?.play(), 100);
     } catch {
       setError("Network error. Please try again.");
     } finally {
