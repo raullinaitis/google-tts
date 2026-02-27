@@ -19,7 +19,6 @@ export default function Home() {
   const [voice, setVoice] = useState(MALE_VOICES[0].name);
   const [stylePreset, setStylePreset] = useState(STYLE_PRESETS[0].tag);
   const [customStyle, setCustomStyle] = useState("");
-  const [temperature, setTemperature] = useState(1.0);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -56,7 +55,6 @@ export default function Home() {
           voice,
           stylePreset,
           customStyle,
-          temperature,
           text,
         }),
       });
@@ -88,7 +86,7 @@ export default function Home() {
     if (!audioUrl) return;
     const a = document.createElement("a");
     a.href = audioUrl;
-    a.download = `tts-${voice}-${Date.now()}.mp3`;
+    a.download = `tts-${voice}-${Date.now()}.wav`;
     a.click();
   }
 
@@ -210,30 +208,6 @@ export default function Home() {
           />
         </section>
 
-        {/* Temperature */}
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
-            Temperature{" "}
-            <span className="normal-case font-normal text-gray-500">
-              ({temperature.toFixed(1)} — lower = more consistent, higher =
-              more varied)
-            </span>
-          </h2>
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={temperature}
-            onChange={(e) => setTemperature(parseFloat(e.target.value))}
-            className="w-full accent-indigo-500"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0.0 (consistent)</span>
-            <span>2.0 (varied)</span>
-          </div>
-        </section>
-
         {/* Text input */}
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
@@ -285,7 +259,7 @@ export default function Home() {
               onClick={handleDownload}
               className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-sm text-white transition-colors"
             >
-              Download MP3
+              Download WAV
             </button>
           </section>
         )}
