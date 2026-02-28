@@ -237,7 +237,7 @@ const QUICK_PRESET = {
   model: "gemini-2.5-pro-preview-tts",
   modelLabel: "Pro",
   voice: "Enceladus",
-  customStyle: "Adopt the persona of an expert friend explaining a secret. The tone must be confident, grounded, and genuinely curious. Energy should be calm but engaging (6\u20137/10), with no hype or sales tone. Maintain a slightly upbeat pace, but use natural, varying speeds (faster when excited, slower to emphasize). Crucially, the delivery must sound unscripted and conversational, incorporating small pauses and subtle disfluencies (light \u201cuh\u201d or \u201cyou know,\u201d occasional rephrasing). The underlying emotion should be subtle warmth and discovery. Conclude the final sentence with a firm, confident downward inflection.",
+  customStyle: "You are a creator who just found a tool that genuinely changes everything — and you can't wait to tell someone. Confident, direct, a little fired up. Not a salesman. A smart friend who's excited but in control. Energy sits at 8 out of 10. Start strong and assured, build through the middle, peak at the list, then land the final two lines with firm conviction. Move with purpose — short sentences get a beat of silence, not a rush to fill it. Speed up when stacking the list. The final line is definitive. No question mark energy.",
 };
 
 export default function Home() {
@@ -258,6 +258,7 @@ export default function Home() {
   const [batchStyles, setBatchStyles] = useState<string[]>([]);
   const [batchStylesLoading, setBatchStylesLoading] = useState(false);
   const [text, setText] = useState("");
+  const [upgrading, setUpgrading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState<GeneratedAudio[]>([]);
@@ -640,7 +641,7 @@ export default function Home() {
       model: QUICK_PRESET.model,
       modelLabel: QUICK_PRESET.modelLabel,
       stylePreset: "",
-      styleLabel: "Expert Friend",
+      styleLabel: "Fired Up Creator",
       customStyle: QUICK_PRESET.customStyle,
       audioUrl: "",
       status: "loading",
@@ -680,6 +681,31 @@ export default function Home() {
       );
     }
     setLoading(false);
+  }
+
+  async function handleUpgradeScript() {
+    if (!text.trim() || upgrading) return;
+    setUpgrading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/upgrade-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          script: text,
+          style: QUICK_PRESET.customStyle,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to upgrade script");
+      } else {
+        setText(data.taggedScript);
+      }
+    } catch {
+      setError("Network error upgrading script");
+    }
+    setUpgrading(false);
   }
 
   return (
@@ -752,7 +778,7 @@ export default function Home() {
                 <div className="flex items-center gap-1.5">
                   <Tag color="var(--accent)">{QUICK_PRESET.modelLabel}</Tag>
                   <Tag>{QUICK_PRESET.voice}</Tag>
-                  <Tag color="var(--accent-secondary)">Expert Friend</Tag>
+                  <Tag color="var(--accent-secondary)">Fired Up Creator</Tag>
                 </div>
               </div>
 
@@ -784,23 +810,42 @@ export default function Home() {
                 />
               </div>
 
-              {/* Generate */}
-              <button
-                onClick={handleQuickGenerate}
-                disabled={!canQuickGenerate}
-                className={`w-full py-3 rounded-xl text-[12px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
-                  loading ? "pulse-glow" : ""
-                }`}
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  background: loading ? "var(--accent-dim)" : canQuickGenerate ? "var(--accent)" : "var(--bg-surface)",
-                  color: loading ? "var(--accent)" : canQuickGenerate ? "var(--bg-primary)" : "var(--text-muted)",
-                  cursor: canQuickGenerate ? "pointer" : "not-allowed",
-                  opacity: canQuickGenerate || loading ? 1 : 0.4,
-                }}
-              >
-                {loading ? "Generating..." : "Generate"}
-              </button>
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleUpgradeScript}
+                  disabled={!text.trim() || upgrading || loading}
+                  className={`py-2.5 px-4 rounded-xl text-[11px] font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
+                    upgrading ? "pulse-glow" : ""
+                  }`}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    background: upgrading ? "rgba(168,85,247,0.15)" : "var(--bg-surface)",
+                    border: `1px solid ${upgrading ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
+                    color: upgrading ? "var(--accent-secondary)" : text.trim() && !loading ? "var(--accent-secondary)" : "var(--text-muted)",
+                    cursor: text.trim() && !upgrading && !loading ? "pointer" : "not-allowed",
+                    opacity: text.trim() && !loading ? 1 : 0.4,
+                  }}
+                >
+                  {upgrading ? "Upgrading..." : "Upgrade Script"}
+                </button>
+                <button
+                  onClick={handleQuickGenerate}
+                  disabled={!canQuickGenerate}
+                  className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
+                    loading ? "pulse-glow" : ""
+                  }`}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    background: loading ? "var(--accent-dim)" : canQuickGenerate ? "var(--accent)" : "var(--bg-surface)",
+                    color: loading ? "var(--accent)" : canQuickGenerate ? "var(--bg-primary)" : "var(--text-muted)",
+                    cursor: canQuickGenerate ? "pointer" : "not-allowed",
+                    opacity: canQuickGenerate || loading ? 1 : 0.4,
+                  }}
+                >
+                  {loading ? "Generating..." : "Generate"}
+                </button>
+              </div>
 
               {error && (
                 <div
