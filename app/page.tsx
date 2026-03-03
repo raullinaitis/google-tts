@@ -237,7 +237,7 @@ const QUICK_PRESET = {
   model: "gemini-2.5-pro-preview-tts",
   modelLabel: "Pro",
   voice: "Enceladus",
-  customStyle: "You are a creator who just found a tool that genuinely changes everything — and you can't wait to tell someone. Confident, direct, a little fired up. Not a salesman. A smart friend who's excited but in control. Energy sits at 8 out of 10. Start strong and assured, build through the middle, peak at the list, then land the final two lines with firm conviction. Move with purpose — short sentences get a beat of silence, not a rush to fill it. Speed up when stacking the list. The final line is definitive. No question mark energy.",
+  customStyle: "A tech-savvy project lead in a collaborative Seattle startup hub. The voice is grounded and certain, communicating as a respected peer rather than a superior. Rapid-fire pacing that never loses its grip or clarity — every word is intentional and delivered with absolute confidence. The accent is a crisp, pleasing General American, typical of the Pacific Northwest. Maintain high energy without sacrificing control; it's a focused, professional sprint that sounds effortless and engaging.",
 };
 
 export default function Home() {
@@ -641,7 +641,7 @@ export default function Home() {
       model: QUICK_PRESET.model,
       modelLabel: QUICK_PRESET.modelLabel,
       stylePreset: "",
-      styleLabel: "Fired Up Creator",
+      styleLabel: "Startup Lead",
       customStyle: QUICK_PRESET.customStyle,
       audioUrl: "",
       status: "loading",
@@ -778,7 +778,7 @@ export default function Home() {
                 <div className="flex items-center gap-1.5">
                   <Tag color="var(--accent)">{QUICK_PRESET.modelLabel}</Tag>
                   <Tag>{QUICK_PRESET.voice}</Tag>
-                  <Tag color="var(--accent-secondary)">Fired Up Creator</Tag>
+                  <Tag color="var(--accent-secondary)">Startup Lead</Tag>
                 </div>
               </div>
 
