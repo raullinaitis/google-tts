@@ -35,6 +35,7 @@ export const VOICES: Voice[] = [
   { name: "Sadaltager", gender: "male" },
   { name: "Schedar", gender: "male" },
   { name: "Umbriel", gender: "male" },
+  { name: "Zubenelgenubi", gender: "male" },
 ];
 
 export const MALE_VOICES = VOICES.filter((v) => v.gender === "male");

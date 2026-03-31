@@ -233,15 +233,50 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 /* ════════════════════════════════════════════════════════════════ */
 
-const QUICK_PRESET = {
-  model: "gemini-2.5-pro-preview-tts",
-  modelLabel: "Pro",
-  voice: "Enceladus",
-  customStyle: "A tech-savvy project lead in a collaborative Seattle startup hub. The voice is grounded and certain, communicating as a respected peer rather than a superior. Rapid-fire pacing that never loses its grip or clarity — every word is intentional and delivered with absolute confidence. The accent is a crisp, pleasing General American, typical of the Pacific Northwest. Maintain high energy without sacrificing control; it's a focused, professional sprint that sounds effortless and engaging.",
+const CHILL_CREATOR_STYLE = `# AUDIO PROFILE: Alex
+## "The Chill Creator"
+
+## THE SCENE: The Home Studio
+It's late afternoon in a cozy home office setup. Warm lamp light, a half-finished iced coffee sweating on the desk, and a quality mic on a boom arm. Alex is leaned back in a chair but leaning forward now - he just hit a topic that got him going. Talking to the listener like they're a friend on the couch, except now he's excited and the words are flying.
+
+### DIRECTOR'S NOTES
+
+Style:
+* Conversational and grounded. This is NOT a performance - it's a hangout. Think Joe Rogan's casual moments meets your smartest friend explaining something cool over beers.
+* Natural fillers are welcome - slight pauses, little breath laughs, the occasional "like" or "yeah" to keep it human.
+* Warm and approachable. Zero pretension. The listener should feel like they already know this person.
+
+Pacing:
+* Fast and fluid but never rushed. Words roll into each other naturally - like someone who thinks faster than they speak and is trying to keep up with their own brain.
+* Quick bursts of energy with tiny micro-pauses between thoughts - just a breath to pivot, then right back to speed.
+* Slow down only for one or two key punchlines - land it, then snap back to pace.
+
+Accent: General American, West Coast leaning. Think California but not surfer - just easy, neutral, friendly.
+
+### SAMPLE CONTEXT
+Alex hosts a creator-focused podcast where they break down tools, trends, and real talk about building stuff online. The energy is always "two friends catching up" not "host performing for an audience" - but today's topic hit different and he's locked in.
+
+#### TRANSCRIPT`;
+
+const QUICK_PRESETS = {
+  quick: {
+    model: "gemini-2.5-pro-preview-tts",
+    modelLabel: "Pro",
+    voice: "Enceladus",
+    label: "Chill Creator",
+    customStyle: CHILL_CREATOR_STYLE,
+  },
+  quick2: {
+    model: "gemini-2.5-pro-preview-tts",
+    modelLabel: "Pro",
+    voice: "Zubenelgenubi",
+    label: "Chill Creator",
+    customStyle: CHILL_CREATOR_STYLE,
+  },
 };
 
 export default function Home() {
-  const [mode, setMode] = useState<"quick" | "advanced">("quick");
+  const [mode, setMode] = useState<"quick" | "quick2" | "advanced">("quick");
   const [model, setModel] = useState(MODELS[0].id);
   const [selectedVoices, setSelectedVoices] = useState<string[]>([
     MALE_VOICES[0].name,
@@ -629,20 +664,21 @@ export default function Home() {
   const canQuickGenerate = !loading && !textTooLong && text.trim().length > 0;
 
   async function handleQuickGenerate() {
+    const preset = QUICK_PRESETS[mode as "quick" | "quick2"] ?? QUICK_PRESETS.quick;
     setError("");
     results.forEach((r) => {
       if (r.audioUrl) URL.revokeObjectURL(r.audioUrl);
     });
     setLoading(true);
-    const id = `${QUICK_PRESET.voice}-${Date.now()}`;
+    const id = `${preset.voice}-${Date.now()}`;
     const newResults: GeneratedAudio[] = [{
       id,
-      voice: QUICK_PRESET.voice,
-      model: QUICK_PRESET.model,
-      modelLabel: QUICK_PRESET.modelLabel,
+      voice: preset.voice,
+      model: preset.model,
+      modelLabel: preset.modelLabel,
       stylePreset: "",
-      styleLabel: "Startup Lead",
-      customStyle: QUICK_PRESET.customStyle,
+      styleLabel: preset.label,
+      customStyle: preset.customStyle,
       audioUrl: "",
       status: "loading",
     }];
@@ -653,10 +689,10 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: QUICK_PRESET.model,
-          voice: QUICK_PRESET.voice,
+          model: preset.model,
+          voice: preset.voice,
           stylePreset: "",
-          customStyle: QUICK_PRESET.customStyle,
+          customStyle: preset.customStyle,
           text,
         }),
       });
@@ -685,6 +721,7 @@ export default function Home() {
 
   async function handleUpgradeScript() {
     if (!text.trim() || upgrading) return;
+    const preset = QUICK_PRESETS[mode as "quick" | "quick2"] ?? QUICK_PRESETS.quick;
     setUpgrading(true);
     setError("");
     try {
@@ -693,7 +730,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           script: text,
-          style: QUICK_PRESET.customStyle,
+          style: preset.customStyle,
         }),
       });
       const data = await res.json();
@@ -751,24 +788,24 @@ export default function Home() {
         >
           {/* Mode tabs */}
           <div className="flex gap-1 p-1 rounded-lg" style={{ background: "var(--bg-surface)" }}>
-            {(["quick", "advanced"] as const).map((m) => (
+            {([["quick", "Quick"], ["quick2", "Quick 2"], ["advanced", "Advanced"]] as const).map(([key, label]) => (
               <button
-                key={m}
-                onClick={() => setMode(m)}
-                className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-200 capitalize"
+                key={key}
+                onClick={() => setMode(key)}
+                className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-200"
                 style={{
-                  background: mode === m ? "var(--bg-raised)" : "transparent",
-                  color: mode === m ? "var(--text-primary)" : "var(--text-muted)",
-                  boxShadow: mode === m ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
+                  background: mode === key ? "var(--bg-raised)" : "transparent",
+                  color: mode === key ? "var(--text-primary)" : "var(--text-muted)",
+                  boxShadow: mode === key ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
                 }}
               >
-                {m}
+                {label}
               </button>
             ))}
           </div>
 
           {/* ═══ QUICK MODE ═══ */}
-          {mode === "quick" && (
+          {(mode === "quick" || mode === "quick2") && (
             <>
               {/* Preset info */}
               <div
@@ -776,9 +813,9 @@ export default function Home() {
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)" }}
               >
                 <div className="flex items-center gap-1.5">
-                  <Tag color="var(--accent)">{QUICK_PRESET.modelLabel}</Tag>
-                  <Tag>{QUICK_PRESET.voice}</Tag>
-                  <Tag color="var(--accent-secondary)">Startup Lead</Tag>
+                  <Tag color="var(--accent)">{QUICK_PRESETS[mode].modelLabel}</Tag>
+                  <Tag>{QUICK_PRESETS[mode].voice}</Tag>
+                  <Tag color="var(--accent-secondary)">{QUICK_PRESETS[mode].label}</Tag>
                 </div>
               </div>
 
