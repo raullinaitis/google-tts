@@ -114,28 +114,24 @@ function AudioCard({
   onDelete?: () => void;
   onPlay?: (el: HTMLAudioElement) => void;
 }) {
+  const [showStyle, setShowStyle] = useState(false);
+
   return (
     <div
-      className="rounded-xl p-4 space-y-3 animate-fade-in group"
+      className="rounded-lg p-3 space-y-2 animate-fade-in group border"
       style={{
         background: "var(--bg-raised)",
-        border: `1px solid ${status === "done" ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "var(--border-dim)"}`,
+        borderColor: status === "done" ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "var(--border-dim)",
       }}
     >
-      {/* Top row: tags + actions */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
+      {/* Header: Voice, Timestamp, Actions */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <Tag>{voice}</Tag>
-          <Tag>{modelLabel}</Tag>
-          {(customStyle || styleLabel !== "Neutral") && (
-            <Tag color="var(--accent-secondary)">
-              {customStyle || styleLabel}
-            </Tag>
-          )}
           {timestamp && (
             <span
-              className="text-[10px] tabular-nums ml-0.5"
-              style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)", opacity: 0.5 }}
+              className="text-[9px] tabular-nums"
+              style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)", opacity: 0.6 }}
             >
               {timestamp}
             </span>
@@ -163,56 +159,89 @@ function AudioCard({
         )}
       </div>
 
-      {/* Text preview */}
+      {/* Script preview */}
       {text && (
-        <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-          {text.length > 100 ? text.slice(0, 100) + "..." : text}
+        <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+          {text.length > 120 ? text.slice(0, 120) + "..." : text}
         </p>
       )}
 
       {/* Audio / Loading / Error */}
       {status === "loading" && (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 py-1">
           <WaveformLoader />
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>Generating...</span>
+          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Generating...</span>
         </div>
       )}
       {status === "error" && (
-        <p className="text-xs" style={{ color: "var(--danger)" }}>{error}</p>
+        <p className="text-[10px]" style={{ color: "var(--danger)" }}>{error}</p>
       )}
       {status === "done" && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <audio
             ref={audioRef}
             src={audioUrl}
             controls
-            className="w-full"
+            className="w-full h-7"
             onPlay={(e) => onPlay?.(e.currentTarget)}
           />
-          <button
-            onClick={onDownload}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all duration-150"
-            style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-subtle)",
-              color: "var(--text-secondary)",
-              fontFamily: "var(--font-mono)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent)";
-              e.currentTarget.style.color = "var(--accent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-subtle)";
-              e.currentTarget.style.color = "var(--text-secondary)";
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
-              <path d="M8 2a.75.75 0 0 1 .75.75v6.69l1.72-1.72a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 1.06-1.06l1.72 1.72V2.75A.75.75 0 0 1 8 2Z" />
-              <path d="M3.5 10a.75.75 0 0 1 .75.75v1.5h7.5v-1.5a.75.75 0 0 1 1.5 0v1.5A1.5 1.5 0 0 1 11.75 14h-7.5A1.5 1.5 0 0 1 2.75 12.5v-1.5a.75.75 0 0 1 .75-.75Z" />
-            </svg>
-            WAV
-          </button>
+          <div className="flex gap-1.5 items-center">
+            <button
+              onClick={onDownload}
+              className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium transition-all duration-150"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--text-secondary)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--accent)";
+                e.currentTarget.style.color = "var(--accent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border-subtle)";
+                e.currentTarget.style.color = "var(--text-secondary)";
+              }}
+              title="Download WAV"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                <path d="M8 2a.75.75 0 0 1 .75.75v6.69l1.72-1.72a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 1.06-1.06l1.72 1.72V2.75A.75.75 0 0 1 8 2Z" />
+                <path d="M3.5 10a.75.75 0 0 1 .75.75v1.5h7.5v-1.5a.75.75 0 0 1 1.5 0v1.5A1.5 1.5 0 0 1 11.75 14h-7.5A1.5 1.5 0 0 1 2.75 12.5v-1.5a.75.75 0 0 1 .75-.75Z" />
+              </svg>
+              Download
+            </button>
+            {(customStyle || styleLabel !== "Neutral") && (
+              <button
+                onClick={() => setShowStyle(!showStyle)}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium transition-all duration-150"
+                style={{
+                  background: showStyle ? "var(--accent-secondary-dim)" : "var(--bg-surface)",
+                  border: `1px solid ${showStyle ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
+                  color: showStyle ? "var(--accent-secondary)" : "var(--text-secondary)",
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                  <path d="M8.5 3a.5.5 0 0 0-1 0v5H2.5a.5.5 0 0 0 0 1h5v5a.5.5 0 0 0 1 0v-5h5a.5.5 0 0 0 0-1h-5V3Z" />
+                </svg>
+                Style
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Style dropdown */}
+      {showStyle && (customStyle || styleLabel !== "Neutral") && (
+        <div
+          className="p-2 rounded text-[9px] leading-relaxed mt-1"
+          style={{
+            background: "var(--bg-primary)",
+            border: "1px solid var(--border-subtle)",
+            color: "var(--text-secondary)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          {customStyle || styleLabel}
         </div>
       )}
     </div>
