@@ -8,26 +8,57 @@
 }
 
 :root {
-  --bg-primary: #0a0a0b;
-  --bg-raised: #111113;
-  --bg-surface: #18181b;
-  --bg-hover: #1f1f23;
-  --border-subtle: #27272a;
-  --border-dim: #1e1e21;
-  --text-primary: #fafaf9;
-  --text-secondary: #a1a1aa;
-  --text-muted: #63636e;
-  --accent: #f59e0b;
-  --accent-dim: rgba(245, 158, 11, 0.12);
-  --accent-glow: rgba(245, 158, 11, 0.25);
-  --accent-secondary: #8b5cf6;
-  --accent-secondary-dim: rgba(139, 92, 246, 0.12);
+  /* Light mode */
+  --bg-primary: #ffffff;
+  --bg-raised: #f9fafb;
+  --bg-surface: #f3f4f6;
+  --bg-hover: #e5e7eb;
+  --border-subtle: #e5e7eb;
+  --border-dim: #d1d5db;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --accent: #3b82f6;
+  --accent-dim: rgba(59, 130, 246, 0.08);
+  --accent-glow: rgba(59, 130, 246, 0.15);
+  --accent-secondary: #3b82f6;
+  --accent-secondary-dim: rgba(59, 130, 246, 0.08);
   --male-accent: #3b82f6;
-  --male-dim: rgba(59, 130, 246, 0.12);
-  --female-accent: #ec4899;
-  --female-dim: rgba(236, 72, 153, 0.12);
+  --male-dim: rgba(59, 130, 246, 0.08);
+  --female-accent: #3b82f6;
+  --female-dim: rgba(59, 130, 246, 0.08);
   --danger: #ef4444;
   --danger-dim: rgba(239, 68, 68, 0.1);
+  --success: #10b981;
+  --success-dim: rgba(16, 185, 129, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode */
+    --bg-primary: #111827;
+    --bg-raised: #1f2937;
+    --bg-surface: #374151;
+    --bg-hover: #4b5563;
+    --border-subtle: #4b5563;
+    --border-dim: #374151;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --accent: #3b82f6;
+    --accent-dim: rgba(59, 130, 246, 0.12);
+    --accent-glow: rgba(59, 130, 246, 0.25);
+    --accent-secondary: #3b82f6;
+    --accent-secondary-dim: rgba(59, 130, 246, 0.12);
+    --male-accent: #3b82f6;
+    --male-dim: rgba(59, 130, 246, 0.12);
+    --female-accent: #3b82f6;
+    --female-dim: rgba(59, 130, 246, 0.12);
+    --danger: #ef4444;
+    --danger-dim: rgba(239, 68, 68, 0.15);
+    --success: #10b981;
+    --success-dim: rgba(16, 185, 129, 0.15);
+  }
 }
 
 * {
@@ -90,7 +121,7 @@ audio::-webkit-media-controls-panel {
 
 .waveform-bar {
   width: 3px;
-  background: var(--accent);
+  background: #3b82f6;
   border-radius: 2px;
   animation: waveform 0.8s ease-in-out infinite;
 }
@@ -119,6 +150,7 @@ audio::-webkit-media-controls-panel {
 
 .pulse-glow {
   animation: pulseGlow 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 var(--accent-glow);
 }
 
 /* Subtle shimmer for loading states */
