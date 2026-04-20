@@ -105,8 +105,8 @@ export async function POST(req: NextRequest) {
     const error = await response.text();
     console.error("Gemini TTS API error:", response.status, error);
     return NextResponse.json(
-      { error: `Google TTS error: ${error}` },
-      { status: response.status }
+      { error: `Google TTS error (${response.status}): ${error}` },
+      { status: 400 }
     );
   }
 
