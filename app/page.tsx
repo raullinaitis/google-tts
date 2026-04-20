@@ -6,6 +6,7 @@ import {
   MALE_VOICES,
   FEMALE_VOICES,
   STYLE_PRESETS,
+  ELEVENLABS_VOICES,
 } from "@/lib/voices";
 import {
   saveGeneration,
@@ -416,6 +417,8 @@ export default function Home() {
   const [batchStylesLoading, setBatchStylesLoading] = useState(false);
   const [text, setText] = useState("");
   const [quickGenerations, setQuickGenerations] = useState(1);
+  const [useElevenLabs, setUseElevenLabs] = useState(false);
+  const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(ELEVENLABS_VOICES[0].id);
   const [advancedGenerations, setAdvancedGenerations] = useState(1);
   const [upgrading, setUpgrading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -515,11 +518,33 @@ export default function Home() {
               r.id === id ? { ...r, status: "error", error: data.error || "Failed" } : r
             )
           );
-          return true; // signal: done (with error)
+          return true;
         }
+
+        let finalB64 = data.audio as string;
+        let finalMime = data.mimeType as string;
+        if (useElevenLabs) {
+          const sts = await fetch("/api/voice-change", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio: finalB64, voiceId: elevenLabsVoiceId }),
+          });
+          const stsData = await sts.json();
+          if (!sts.ok) {
+            setResults((prev) =>
+              prev.map((r) =>
+                r.id === id ? { ...r, status: "error", error: stsData.error || "Voice swap failed" } : r
+              )
+            );
+            return true;
+          }
+          finalB64 = stsData.audio;
+          finalMime = stsData.mimeType;
+        }
+
         const blob = new Blob(
-          [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
-          { type: data.mimeType }
+          [Uint8Array.from(atob(finalB64), (c) => c.charCodeAt(0))],
+          { type: finalMime }
         );
         const url = URL.createObjectURL(blob);
         setResults((prev) =>
@@ -527,7 +552,7 @@ export default function Home() {
             r.id === id ? { ...r, status: "done", audioUrl: url, audioBlob: blob } : r
           )
         );
-        return true; // signal: done (success)
+        return true;
       };
 
       try {
@@ -549,7 +574,7 @@ export default function Home() {
         );
       }
     },
-    [model, stylePreset, customStyle, text]
+    [model, stylePreset, customStyle, text, useElevenLabs, elevenLabsVoiceId]
   );
 
   const saveResultsToHistory = useCallback(
@@ -822,9 +847,31 @@ export default function Home() {
             );
             return true;
           }
+
+          let finalB64 = data.audio as string;
+          let finalMime = data.mimeType as string;
+          if (useElevenLabs) {
+            const sts = await fetch("/api/voice-change", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ audio: finalB64, voiceId: elevenLabsVoiceId }),
+            });
+            const stsData = await sts.json();
+            if (!sts.ok) {
+              setResults((prev) =>
+                prev.map((x) =>
+                  x.id === r.id ? { ...x, status: "error", error: stsData.error || "Voice swap failed" } : x
+                )
+              );
+              return true;
+            }
+            finalB64 = stsData.audio;
+            finalMime = stsData.mimeType;
+          }
+
           const blob = new Blob(
-            [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
-            { type: data.mimeType }
+            [Uint8Array.from(atob(finalB64), (c) => c.charCodeAt(0))],
+            { type: finalMime }
           );
           const url = URL.createObjectURL(blob);
           setResults((prev) =>
@@ -901,16 +948,37 @@ export default function Home() {
           setResults((prev) =>
             prev.map((r) => r.id === result.id ? { ...r, status: "error", error: data.error || "Failed" } : r)
           );
-        } else {
-          const blob = new Blob(
-            [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
-            { type: data.mimeType }
-          );
-          const url = URL.createObjectURL(blob);
-          setResults((prev) =>
-            prev.map((r) => r.id === result.id ? { ...r, status: "done", audioUrl: url, audioBlob: blob } : r)
-          );
+          continue;
         }
+
+        let finalAudioB64 = data.audio as string;
+        let finalMime = data.mimeType as string;
+
+        if (useElevenLabs) {
+          const sts = await fetch("/api/voice-change", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio: finalAudioB64, voiceId: elevenLabsVoiceId }),
+          });
+          const stsData = await sts.json();
+          if (!sts.ok) {
+            setResults((prev) =>
+              prev.map((r) => r.id === result.id ? { ...r, status: "error", error: stsData.error || "Voice swap failed" } : r)
+            );
+            continue;
+          }
+          finalAudioB64 = stsData.audio;
+          finalMime = stsData.mimeType;
+        }
+
+        const blob = new Blob(
+          [Uint8Array.from(atob(finalAudioB64), (c) => c.charCodeAt(0))],
+          { type: finalMime }
+        );
+        const url = URL.createObjectURL(blob);
+        setResults((prev) =>
+          prev.map((r) => r.id === result.id ? { ...r, status: "done", audioUrl: url, audioBlob: blob } : r)
+        );
       } catch {
         setResults((prev) =>
           prev.map((r) => r.id === result.id ? { ...r, status: "error", error: "Network error" } : r)
@@ -1067,6 +1135,43 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* ElevenLabs STS */}
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <SectionLabel>ElevenLabs Voice</SectionLabel>
+                  <button
+                    onClick={() => setUseElevenLabs((v) => !v)}
+                    className="text-[10px] px-2 py-1 rounded-md font-medium transition-all duration-150"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      background: useElevenLabs ? "var(--accent-secondary-dim)" : "var(--bg-surface)",
+                      border: `1px solid ${useElevenLabs ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
+                      color: useElevenLabs ? "var(--accent-secondary)" : "var(--text-muted)",
+                    }}
+                  >
+                    {useElevenLabs ? "ON" : "OFF"}
+                  </button>
+                </div>
+                {useElevenLabs && (
+                  <div className="flex gap-1">
+                    {ELEVENLABS_VOICES.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => setElevenLabsVoiceId(v.id)}
+                        className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150"
+                        style={{
+                          background: elevenLabsVoiceId === v.id ? "var(--accent-secondary-dim)" : "var(--bg-surface)",
+                          border: `1px solid ${elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
+                          color: elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--text-secondary)",
+                        }}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -1571,6 +1676,43 @@ export default function Home() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* ElevenLabs STS */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <SectionLabel>ElevenLabs Voice</SectionLabel>
+              <button
+                onClick={() => setUseElevenLabs((v) => !v)}
+                className="text-[10px] px-2 py-1 rounded-md font-medium transition-all duration-150"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  background: useElevenLabs ? "var(--accent-secondary-dim)" : "var(--bg-surface)",
+                  border: `1px solid ${useElevenLabs ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
+                  color: useElevenLabs ? "var(--accent-secondary)" : "var(--text-muted)",
+                }}
+              >
+                {useElevenLabs ? "ON" : "OFF"}
+              </button>
+            </div>
+            {useElevenLabs && (
+              <div className="flex gap-1">
+                {ELEVENLABS_VOICES.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setElevenLabsVoiceId(v.id)}
+                    className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150"
+                    style={{
+                      background: elevenLabsVoiceId === v.id ? "var(--accent-secondary-dim)" : "var(--bg-surface)",
+                      border: `1px solid ${elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
+                      color: elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Generate */}

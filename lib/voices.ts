@@ -69,3 +69,11 @@ export const STYLE_PRESETS: StylePreset[] = [
   { label: "Robotic", tag: "[robotic]" },
   { label: "Extremely Fast", tag: "[extremely fast]" },
 ];
+
+export type ElevenLabsVoice = { id: string; label: string };
+
+export const ELEVENLABS_VOICES: ElevenLabsVoice[] = [
+  { id: "B6TbzaWnhwjt9SOyINzB", label: "Voice 1" },
+  { id: "r1pdznn6nD55dEWWIziW", label: "Voice 2" },
+  { id: "b3kUKZ9AW4VXxdo55p2p", label: "Voice 3" },
+];
