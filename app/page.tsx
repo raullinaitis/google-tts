@@ -354,6 +354,8 @@ export default function Home() {
   const [batchStyles, setBatchStyles] = useState<string[]>([]);
   const [batchStylesLoading, setBatchStylesLoading] = useState(false);
   const [text, setText] = useState("");
+  const [quickGenerations, setQuickGenerations] = useState(1);
+  const [advancedGenerations, setAdvancedGenerations] = useState(1);
   const [upgrading, setUpgrading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -521,17 +523,22 @@ export default function Home() {
       return;
     }
     setLoading(true);
-    const newResults: GeneratedAudio[] = selectedVoices.map((voice) => ({
-      id: `${voice}-${Date.now()}`,
-      voice,
-      model,
-      modelLabel,
-      stylePreset,
-      styleLabel,
-      customStyle,
-      audioUrl: "",
-      status: "loading",
-    }));
+    const newResults: GeneratedAudio[] = [];
+    for (let gen = 0; gen < advancedGenerations; gen++) {
+      for (const voice of selectedVoices) {
+        newResults.push({
+          id: `${voice}-${Date.now()}-${gen}`,
+          voice,
+          model,
+          modelLabel,
+          stylePreset,
+          styleLabel,
+          customStyle,
+          audioUrl: "",
+          status: "loading",
+        });
+      }
+    }
     setResults(newResults);
     // Max 5 concurrent requests to avoid hitting RPM limits
     const CONCURRENCY = 5;
@@ -731,9 +738,9 @@ export default function Home() {
       if (r.audioUrl) URL.revokeObjectURL(r.audioUrl);
     });
     setLoading(true);
-    const id = `${preset.voice}-${Date.now()}`;
-    const newResults: GeneratedAudio[] = [{
-      id,
+
+    const newResults: GeneratedAudio[] = Array.from({ length: quickGenerations }, (_, i) => ({
+      id: `${preset.voice}-${Date.now()}-${i}`,
       voice: preset.voice,
       model: preset.model,
       modelLabel: preset.modelLabel,
@@ -741,41 +748,43 @@ export default function Home() {
       styleLabel: preset.label,
       customStyle: preset.customStyle,
       audioUrl: "",
-      status: "loading",
-    }];
+      status: "loading" as const,
+    }));
     setResults(newResults);
 
-    try {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: preset.model,
-          voice: preset.voice,
-          stylePreset: "",
-          customStyle: preset.customStyle,
-          text,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
+    for (const result of newResults) {
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: preset.model,
+            voice: preset.voice,
+            stylePreset: "",
+            customStyle: preset.customStyle,
+            text,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setResults((prev) =>
+            prev.map((r) => r.id === result.id ? { ...r, status: "error", error: data.error || "Failed" } : r)
+          );
+        } else {
+          const blob = new Blob(
+            [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
+            { type: data.mimeType }
+          );
+          const url = URL.createObjectURL(blob);
+          setResults((prev) =>
+            prev.map((r) => r.id === result.id ? { ...r, status: "done", audioUrl: url, audioBlob: blob } : r)
+          );
+        }
+      } catch {
         setResults((prev) =>
-          prev.map((r) => r.id === id ? { ...r, status: "error", error: data.error || "Failed" } : r)
-        );
-      } else {
-        const blob = new Blob(
-          [Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0))],
-          { type: data.mimeType }
-        );
-        const url = URL.createObjectURL(blob);
-        setResults((prev) =>
-          prev.map((r) => r.id === id ? { ...r, status: "done", audioUrl: url, audioBlob: blob } : r)
+          prev.map((r) => r.id === result.id ? { ...r, status: "error", error: "Network error" } : r)
         );
       }
-    } catch {
-      setResults((prev) =>
-        prev.map((r) => r.id === id ? { ...r, status: "error", error: "Network error" } : r)
-      );
     }
     setLoading(false);
   }
@@ -906,6 +915,27 @@ export default function Home() {
                     color: "var(--text-primary)",
                   }}
                 />
+              </div>
+
+              {/* Generation count */}
+              <div>
+                <SectionLabel>Generations</SectionLabel>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setQuickGenerations(num)}
+                      className="flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200"
+                      style={{
+                        background: quickGenerations === num ? "var(--accent)" : "var(--bg-surface)",
+                        color: quickGenerations === num ? "var(--bg-primary)" : "var(--text-secondary)",
+                        border: `1px solid ${quickGenerations === num ? "var(--accent)" : "var(--border-subtle)"}`,
+                      }}
+                    >
+                      {num}x
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Actions */}
@@ -1389,6 +1419,27 @@ export default function Home() {
                 color: "var(--text-primary)",
               }}
             />
+          </div>
+
+          {/* Generation count */}
+          <div>
+            <SectionLabel>Generations per Voice</SectionLabel>
+            <div className="flex gap-2">
+              {[1, 2, 3].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setAdvancedGenerations(num)}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200"
+                  style={{
+                    background: advancedGenerations === num ? "var(--accent)" : "var(--bg-surface)",
+                    color: advancedGenerations === num ? "var(--bg-primary)" : "var(--text-secondary)",
+                    border: `1px solid ${advancedGenerations === num ? "var(--accent)" : "var(--border-subtle)"}`,
+                  }}
+                >
+                  {num}x
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Generate */}
