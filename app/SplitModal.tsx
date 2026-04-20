@@ -281,8 +281,9 @@ export function SplitModal({
               onClick={onClose}
               className="px-3 py-2 rounded-lg text-[11px] font-medium"
               style={{ background: "var(--bg-surface)", color: "var(--text-muted)" }}
+              title="The full audio is already saved in History"
             >
-              Cancel
+              Skip — keep full only
             </button>
             <button
               onClick={handleSave}

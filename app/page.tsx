@@ -1709,24 +1709,115 @@ export default function Home() {
                   Clear All
                 </button>
               </div>
-              {history.map((h) => (
-                <AudioCard
-                  key={h.id}
-                  voice={h.voice}
-                  modelLabel={h.modelLabel}
-                  styleLabel={h.styleLabel}
-                  customStyle={h.customStyle}
-                  text={h.text}
-                  audioUrl={h.audioUrl}
-                  status="done"
-                  timestamp={timeAgo(h.createdAt)}
-                  onDownload={() => handleDownload(h.audioUrl, h.voice)}
-                  onDelete={() => handleDeleteHistoryItem(h.id)}
-                  onPlay={handleAudioPlay}
-                  onSplit={h.segmentType && h.segmentType !== "SOURCE" ? undefined : () => openSplitForHistory(h)}
-                  segmentBadge={h.segmentType && h.segmentType !== "SOURCE" ? h.segmentType : undefined}
-                />
-              ))}
+              {(() => {
+                // Cluster by groupId. Non-grouped items render as singletons.
+                const rendered = new Set<string>();
+                const nodes: React.ReactNode[] = [];
+                const orderSegment = (t?: string) =>
+                  t === "HOOK" ? 0 : t === "BODY" ? 1 : t === "CTA" ? 2 : 3;
+
+                for (const h of history) {
+                  if (rendered.has(h.id)) continue;
+
+                  if (h.groupId) {
+                    const siblings = history
+                      .filter((x) => x.groupId === h.groupId)
+                      .sort((a, b) => orderSegment(a.segmentType) - orderSegment(b.segmentType));
+                    siblings.forEach((s) => rendered.add(s.id));
+
+                    const first = siblings[0];
+                    nodes.push(
+                      <div
+                        key={h.groupId}
+                        className="rounded-lg p-3 space-y-2"
+                        style={{
+                          background: "var(--bg-raised)",
+                          border: "1px solid color-mix(in srgb, var(--accent-secondary) 30%, transparent)",
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3" style={{ color: "var(--accent-secondary)" }}>
+                              <path d="M3 2.75A.75.75 0 0 1 3.75 2h1.5a.75.75 0 0 1 0 1.5h-.75v9h.75a.75.75 0 0 1 0 1.5h-1.5A.75.75 0 0 1 3 13.25V2.75Zm7.75-.75A.75.75 0 0 1 11.5 2h.75A.75.75 0 0 1 13 2.75v10.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h.75v-9h-.75a.75.75 0 0 1-.75-.75Z" />
+                            </svg>
+                            <span
+                              className="text-[10px] font-medium uppercase tracking-[0.2em]"
+                              style={{ fontFamily: "var(--font-mono)", color: "var(--accent-secondary)" }}
+                            >
+                              Split group
+                            </span>
+                            <span
+                              className="text-[9px] tabular-nums"
+                              style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)", opacity: 0.6 }}
+                            >
+                              {timeAgo(first.createdAt)}
+                            </span>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              for (const s of siblings) await handleDeleteHistoryItem(s.id);
+                            }}
+                            className="text-[10px] px-2 py-0.5 rounded-md transition-all duration-150"
+                            style={{ color: "var(--text-muted)" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = "var(--danger)";
+                              e.currentTarget.style.background = "var(--danger-dim)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = "var(--text-muted)";
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            Delete group
+                          </button>
+                        </div>
+                        {first.text && (
+                          <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                            {first.text.length > 140 ? first.text.slice(0, 140) + "..." : first.text}
+                          </p>
+                        )}
+                        <div className="space-y-2">
+                          {siblings.map((s) => (
+                            <AudioCard
+                              key={s.id}
+                              voice={s.voice}
+                              modelLabel={s.modelLabel}
+                              styleLabel={s.styleLabel}
+                              customStyle={s.customStyle}
+                              audioUrl={s.audioUrl}
+                              status="done"
+                              onDownload={() => handleDownload(s.audioUrl, `${s.voice}-${s.segmentType}`)}
+                              onDelete={() => handleDeleteHistoryItem(s.id)}
+                              onPlay={handleAudioPlay}
+                              segmentBadge={s.segmentType && s.segmentType !== "SOURCE" ? s.segmentType : undefined}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    rendered.add(h.id);
+                    nodes.push(
+                      <AudioCard
+                        key={h.id}
+                        voice={h.voice}
+                        modelLabel={h.modelLabel}
+                        styleLabel={h.styleLabel}
+                        customStyle={h.customStyle}
+                        text={h.text}
+                        audioUrl={h.audioUrl}
+                        status="done"
+                        timestamp={timeAgo(h.createdAt)}
+                        onDownload={() => handleDownload(h.audioUrl, h.voice)}
+                        onDelete={() => handleDeleteHistoryItem(h.id)}
+                        onPlay={handleAudioPlay}
+                        onSplit={() => openSplitForHistory(h)}
+                      />
+                    );
+                  }
+                }
+                return nodes;
+              })()}
             </div>
           )}
         </main>
