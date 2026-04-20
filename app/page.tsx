@@ -419,6 +419,18 @@ export default function Home() {
   const [quickGenerations, setQuickGenerations] = useState(1);
   const [useElevenLabs, setUseElevenLabs] = useState(false);
   const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(ELEVENLABS_VOICES[0].id);
+  // Advanced-mode voice settings (Quick mode uses hardcoded defaults below).
+  const [stsStability, setStsStability] = useState(0.5);
+  const [stsSimilarity, setStsSimilarity] = useState(0.5);
+  const [stsStyle, setStsStyle] = useState(0);
+  const [stsSpeakerBoost, setStsSpeakerBoost] = useState(true);
+
+  const QUICK_STS_SETTINGS = {
+    stability: 0.5,
+    similarity_boost: 0.5,
+    style: 0,
+    use_speaker_boost: true,
+  } as const;
   const [advancedGenerations, setAdvancedGenerations] = useState(1);
   const [upgrading, setUpgrading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -527,7 +539,16 @@ export default function Home() {
           const sts = await fetch("/api/voice-change", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ audio: finalB64, voiceId: elevenLabsVoiceId }),
+            body: JSON.stringify({
+              audio: finalB64,
+              voiceId: elevenLabsVoiceId,
+              voiceSettings: {
+                stability: stsStability,
+                similarity_boost: stsSimilarity,
+                style: stsStyle,
+                use_speaker_boost: stsSpeakerBoost,
+              },
+            }),
           });
           const stsData = await sts.json();
           if (!sts.ok) {
@@ -574,7 +595,7 @@ export default function Home() {
         );
       }
     },
-    [model, stylePreset, customStyle, text, useElevenLabs, elevenLabsVoiceId]
+    [model, stylePreset, customStyle, text, useElevenLabs, elevenLabsVoiceId, stsStability, stsSimilarity, stsStyle, stsSpeakerBoost]
   );
 
   const saveResultsToHistory = useCallback(
@@ -854,7 +875,16 @@ export default function Home() {
             const sts = await fetch("/api/voice-change", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ audio: finalB64, voiceId: elevenLabsVoiceId }),
+              body: JSON.stringify({
+                audio: finalB64,
+                voiceId: elevenLabsVoiceId,
+                voiceSettings: {
+                  stability: stsStability,
+                  similarity_boost: stsSimilarity,
+                  style: stsStyle,
+                  use_speaker_boost: stsSpeakerBoost,
+                },
+              }),
             });
             const stsData = await sts.json();
             if (!sts.ok) {
@@ -958,7 +988,11 @@ export default function Home() {
           const sts = await fetch("/api/voice-change", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ audio: finalAudioB64, voiceId: elevenLabsVoiceId }),
+            body: JSON.stringify({
+              audio: finalAudioB64,
+              voiceId: elevenLabsVoiceId,
+              voiceSettings: QUICK_STS_SETTINGS,
+            }),
           });
           const stsData = await sts.json();
           if (!sts.ok) {
@@ -1696,21 +1730,77 @@ export default function Home() {
               </button>
             </div>
             {useElevenLabs && (
-              <div className="flex gap-1">
-                {ELEVENLABS_VOICES.map((v) => (
-                  <button
-                    key={v.id}
-                    onClick={() => setElevenLabsVoiceId(v.id)}
-                    className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150"
-                    style={{
-                      background: elevenLabsVoiceId === v.id ? "var(--accent-secondary-dim)" : "var(--bg-surface)",
-                      border: `1px solid ${elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
-                      color: elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--text-secondary)",
-                    }}
-                  >
-                    {v.label}
-                  </button>
+              <div className="space-y-3">
+                <div className="flex gap-1">
+                  {ELEVENLABS_VOICES.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setElevenLabsVoiceId(v.id)}
+                      className="flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-150"
+                      style={{
+                        background: elevenLabsVoiceId === v.id ? "var(--accent-secondary-dim)" : "var(--bg-surface)",
+                        border: `1px solid ${elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--border-subtle)"}`,
+                        color: elevenLabsVoiceId === v.id ? "var(--accent-secondary)" : "var(--text-secondary)",
+                      }}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sliders */}
+                {(
+                  [
+                    { label: "Stability", value: stsStability, set: setStsStability },
+                    { label: "Similarity", value: stsSimilarity, set: setStsSimilarity },
+                    { label: "Style", value: stsStyle, set: setStsStyle },
+                  ] as const
+                ).map((s) => (
+                  <div key={s.label} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="text-[10px] uppercase tracking-[0.15em]"
+                        style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}
+                      >
+                        {s.label}
+                      </span>
+                      <span
+                        className="text-[10px] tabular-nums"
+                        style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}
+                      >
+                        {s.value.toFixed(2)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={s.value}
+                      onChange={(e) => s.set(parseFloat(e.target.value))}
+                      className="w-full accent-[var(--accent-secondary)]"
+                    />
+                  </div>
                 ))}
+
+                {/* Speaker boost */}
+                <label
+                  className="flex items-center justify-between gap-2 py-1 px-2 rounded-md cursor-pointer"
+                  style={{ background: "var(--bg-surface)" }}
+                >
+                  <span
+                    className="text-[10px] uppercase tracking-[0.15em]"
+                    style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}
+                  >
+                    Speaker Boost
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={stsSpeakerBoost}
+                    onChange={(e) => setStsSpeakerBoost(e.target.checked)}
+                    className="accent-[var(--accent-secondary)]"
+                  />
+                </label>
               </div>
             )}
           </div>

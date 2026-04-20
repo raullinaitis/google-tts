@@ -39,14 +39,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ELEVENLABS_API_KEY not configured" }, { status: 500 });
   }
 
-  let body: { audio: string; voiceId: string };
+  let body: {
+    audio: string;
+    voiceId: string;
+    voiceSettings?: {
+      stability?: number;
+      similarity_boost?: number;
+      style?: number;
+      use_speaker_boost?: boolean;
+    };
+  };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { audio, voiceId } = body;
+  const { audio, voiceId, voiceSettings } = body;
   if (!audio || !voiceId) {
     return NextResponse.json({ error: "audio and voiceId are required" }, { status: 400 });
   }
@@ -67,6 +76,9 @@ export async function POST(req: NextRequest) {
   form.append("audio", new Blob([audioBuffer], { type: "audio/wav" }), "input.wav");
   form.append("model_id", "eleven_multilingual_sts_v2");
   form.append("output_format", "pcm_24000");
+  if (voiceSettings) {
+    form.append("voice_settings", JSON.stringify(voiceSettings));
+  }
 
   let res: Response;
   try {
