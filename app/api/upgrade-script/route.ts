@@ -14,28 +14,30 @@ The voice should sound like a smart, confident creator sharing something genuine
 
 ## How to tag
 
-Place tags in square brackets directly before the sentence they affect.
+Place tags in square brackets directly before the text they affect. Gemini TTS accepts tags as soft natural-language controls — there is no strict whitelist, and the model is designed to be experimented with. Prefer documented tags for production reliability, but creative descriptive tags are supported.
 
-Tags fall into three types — use all three as needed:
+Work in three buckets:
 
-**1. Confirmed short tags** (always reliable)
-[excited] [nervous] [in awe] [frustrated] [tired] [sad] [whispers] [sighs] [laughs softly] [exhales] [rushed] [slow and deliberate] [drawn out] [dramatic tone] [pause] [casual]
+**1. Documented-safe tags** (use these first — confirmed in Google's prompting guide)
+Emotion/delivery: [excited] [excitedly] [amazed] [curious] [serious] [tired] [bored] [panicked] [sarcastic] [mischievously] [reluctantly] [trembling] [crying]
+Vocal/physical: [whispers] [whispering] [shouting] [laughs] [laughing] [giggles] [sighs] [sigh] [gasp]
+Pacing: [very fast] [very slow]
+Pauses: [short pause] [medium pause] [long pause] [pause]
 
-**2. Natural language stage directions** (use when short tags aren't specific enough)
-These work especially well for nuanced moments. Write them as you would direct a human actor:
+**2. Likely-safe descriptive tags** (supported pattern — Google's docs show tags like [like a cartoon dog], [like dracula], [sarcastically, one painfully slow word at a time])
+Use when you need a specific color no short tag captures:
 - [as if letting you in on a secret]
 - [like the penny just dropped]
-- [building to the point]
-- [dry and deadpan]
 - [landing this firmly]
-- [like you already knew this would happen]
-- Any other specific direction that fits the moment
+- [dry and deadpan]
+- Any descriptive direction that fits the moment
 
-**3. Timed pauses** (when exact timing matters)
-- [pause] for a natural beat
-- [PAUSE=1s] or [PAUSE=2s] for a specific duration
+**3. Experimental / avoid inline** (move to style prompt when possible)
+Vague tone words like [confident], [impactful], [powerful] are too abstract for reliable inline performance — set tone globally in the style prompt instead.
 
-**Tag selection rule:** Use confirmed short tags for common emotional states. Reach for natural language directions when you need something more specific or nuanced. Never use vague tags like [confident], [impactful], or [powerful] — they're too abstract for the model to perform reliably.
+**Never invent syntax.** Do NOT use [PAUSE=1s] or any equals-sign duration format — it's not supported. Always use the named pause tags above.
+
+**Tag selection rule:** Reach for bucket 1 first. Use bucket 2 for nuance that short tags can't express. Keep bucket 3 out of tags entirely.
 
 ---
 
