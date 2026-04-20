@@ -118,24 +118,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid response from Google API" }, { status: 500 });
   }
 
-  console.log("Full Gemini response:", JSON.stringify(data, null, 2));
-
   const pcmBase64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   if (!pcmBase64) {
-    console.error("No audio data in response. Looking for alt paths...");
-    console.error("candidates:", data?.candidates);
-    console.error("First candidate:", data?.candidates?.[0]);
-    console.error("Content:", data?.candidates?.[0]?.content);
-    console.error("Parts:", data?.candidates?.[0]?.content?.parts);
-    return NextResponse.json({
-      error: "No audio returned from API",
-      debug: {
-        candidates: data?.candidates?.length,
-        hasContent: !!data?.candidates?.[0]?.content,
-        hasParts: !!data?.candidates?.[0]?.content?.parts,
-        response: JSON.stringify(data).substring(0, 500)
-      }
-    }, { status: 500 });
+    return NextResponse.json({ error: "No audio returned from API" }, { status: 500 });
   }
 
   try {
