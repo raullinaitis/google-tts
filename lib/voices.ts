@@ -49,18 +49,18 @@ export type Model = {
 
 export const MODELS: Model[] = [
   {
-    id: "gemini-2.5-flash-preview-tts",
-    label: "Flash",
-    description: "Low latency, fast generation",
+    id: "gemini-3.1-flash-preview-tts",
+    label: "3.1 Flash",
+    description: "Low latency, natural speech",
   },
   {
-    id: "gemini-2.5-flash-lite-preview-tts",
-    label: "Flash Lite",
-    description: "Lightweight preview model",
+    id: "gemini-3.1-flash-lite-preview-tts",
+    label: "3.1 Flash Lite",
+    description: "Lightweight, cost-efficient",
   },
   {
-    id: "gemini-2.5-pro-preview-tts",
-    label: "Pro",
+    id: "gemini-3.1-pro-preview-tts",
+    label: "3.1 Pro",
     description: "High control, best for long-form",
   },
 ];
