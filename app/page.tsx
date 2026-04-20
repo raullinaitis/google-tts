@@ -260,14 +260,14 @@ Alex hosts a creator-focused podcast where they break down tools, trends, and re
 
 const QUICK_PRESETS = {
   quick: {
-    model: "gemini-3.1-pro-preview-tts",
+    model: "gemini-3.1-flash-tts-preview",
     modelLabel: "Pro",
     voice: "Enceladus",
     label: "Chill Creator",
     customStyle: CHILL_CREATOR_STYLE,
   },
   quick2: {
-    model: "gemini-3.1-pro-preview-tts",
+    model: "gemini-3.1-flash-tts-preview",
     modelLabel: "Pro",
     voice: "Zubenelgenubi",
     label: "Chill Creator",
