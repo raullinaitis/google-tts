@@ -8,16 +8,16 @@
 }
 
 :root {
-  /* Light mode */
+  /* Light mode - clean white/black/grey */
   --bg-primary: #ffffff;
-  --bg-raised: #f9fafb;
-  --bg-surface: #f3f4f6;
-  --bg-hover: #e5e7eb;
-  --border-subtle: #e5e7eb;
-  --border-dim: #d1d5db;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --bg-raised: #ffffff;
+  --bg-surface: #f5f5f5;
+  --bg-hover: #eeeeee;
+  --border-subtle: #e0e0e0;
+  --border-dim: #cccccc;
+  --text-primary: #000000;
+  --text-secondary: #666666;
+  --text-muted: #999999;
   --accent: #3b82f6;
   --accent-dim: rgba(59, 130, 246, 0.08);
   --accent-glow: rgba(59, 130, 246, 0.15);
@@ -35,16 +35,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Dark mode */
-    --bg-primary: #111827;
-    --bg-raised: #1f2937;
-    --bg-surface: #374151;
-    --bg-hover: #4b5563;
-    --border-subtle: #4b5563;
-    --border-dim: #374151;
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --text-muted: #9ca3af;
+    /* Dark mode - pure dark with light accents */
+    --bg-primary: #000000;
+    --bg-raised: #1a1a1a;
+    --bg-surface: #2a2a2a;
+    --bg-hover: #3a3a3a;
+    --border-subtle: #3a3a3a;
+    --border-dim: #2a2a2a;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-muted: #999999;
     --accent: #3b82f6;
     --accent-dim: rgba(59, 130, 246, 0.12);
     --accent-glow: rgba(59, 130, 246, 0.25);
@@ -70,6 +70,7 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  color-scheme: light;
 }
 
 /* Noise grain overlay */
