@@ -13,7 +13,9 @@ import {
   deleteGeneration,
   clearHistory,
   type HistoryEntry,
+  type SegmentType,
 } from "@/lib/history";
+import { SplitModal } from "./SplitModal";
 
 const MAX_BYTES = 4000;
 
@@ -99,6 +101,8 @@ function AudioCard({
   onDownload,
   onDelete,
   onPlay,
+  onSplit,
+  segmentBadge,
 }: {
   voice: string;
   modelLabel: string;
@@ -113,6 +117,8 @@ function AudioCard({
   onDownload: () => void;
   onDelete?: () => void;
   onPlay?: (el: HTMLAudioElement) => void;
+  onSplit?: () => void;
+  segmentBadge?: string;
 }) {
   const [showStyle, setShowStyle] = useState(false);
 
@@ -128,6 +134,7 @@ function AudioCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Tag>{voice}</Tag>
+          {segmentBadge && <Tag color="var(--accent-secondary)">{segmentBadge}</Tag>}
           {timestamp && (
             <span
               className="text-[9px] tabular-nums"
@@ -210,6 +217,31 @@ function AudioCard({
               </svg>
               Download
             </button>
+            {onSplit && (
+              <button
+                onClick={onSplit}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium transition-all duration-150"
+                style={{
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--accent-secondary)";
+                  e.currentTarget.style.color = "var(--accent-secondary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border-subtle)";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+                title="Split into HOOK / BODY / CTA"
+              >
+                <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                  <path d="M3 2.75A.75.75 0 0 1 3.75 2h1.5a.75.75 0 0 1 0 1.5h-.75v9h.75a.75.75 0 0 1 0 1.5h-1.5A.75.75 0 0 1 3 13.25V2.75Zm4 0A.75.75 0 0 1 7.75 2h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Zm0 10.5A.75.75 0 0 1 7.75 13h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Zm3.75-10.5A.75.75 0 0 1 11.5 2h.75A.75.75 0 0 1 13 2.75v10.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h.75v-9h-.75a.75.75 0 0 1-.75-.75Z" />
+                </svg>
+                Split
+              </button>
+            )}
             {(customStyle || styleLabel !== "Neutral") && (
               <button
                 onClick={() => setShowStyle(!showStyle)}
@@ -392,6 +424,16 @@ export default function Home() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const firstAudioRef = useRef<HTMLAudioElement>(null);
   const allAudioRefs = useRef<Set<HTMLAudioElement>>(new Set());
+  const [splitTarget, setSplitTarget] = useState<
+    | {
+        blob: Blob;
+        url: string;
+        text: string;
+        baseEntry: Omit<HistoryEntry, "id" | "audioBlob" | "createdAt" | "groupId" | "segmentType" | "parentId">;
+        parentId: string;
+      }
+    | null
+  >(null);
 
   const handleAudioPlay = useCallback((el: HTMLAudioElement) => {
     allAudioRefs.current.add(el);
@@ -605,6 +647,66 @@ export default function Home() {
       if (item) URL.revokeObjectURL(item.audioUrl);
       return prev.filter((h) => h.id !== id);
     });
+  }
+
+  function openSplitForResult(r: GeneratedAudio) {
+    if (!r.audioBlob) return;
+    setSplitTarget({
+      blob: r.audioBlob,
+      url: r.audioUrl,
+      text,
+      parentId: r.id,
+      baseEntry: {
+        voice: r.voice,
+        model: r.model,
+        modelLabel: r.modelLabel,
+        stylePreset: r.stylePreset,
+        styleLabel: r.styleLabel,
+        customStyle: r.customStyle,
+        text,
+      },
+    });
+  }
+
+  function openSplitForHistory(h: HistoryItem) {
+    setSplitTarget({
+      blob: h.audioBlob,
+      url: h.audioUrl,
+      text: h.text,
+      parentId: h.id,
+      baseEntry: {
+        voice: h.voice,
+        model: h.model,
+        modelLabel: h.modelLabel,
+        stylePreset: h.stylePreset,
+        styleLabel: h.styleLabel,
+        customStyle: h.customStyle,
+        text: h.text,
+      },
+    });
+  }
+
+  async function handleSaveSplit(segments: { type: SegmentType; blob: Blob }[]) {
+    if (!splitTarget) return;
+    const groupId = `grp-${Date.now()}`;
+    const baseTime = Date.now();
+    const newItems: HistoryItem[] = [];
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      const id = `${splitTarget.parentId}-${seg.type}-${baseTime + i}`;
+      const entry: HistoryEntry = {
+        ...splitTarget.baseEntry,
+        id,
+        audioBlob: seg.blob,
+        createdAt: new Date(baseTime + i).toISOString(),
+        groupId,
+        segmentType: seg.type,
+        parentId: splitTarget.parentId,
+      };
+      await saveGeneration(entry);
+      newItems.push({ ...entry, audioUrl: URL.createObjectURL(seg.blob) });
+    }
+    setHistory((prev) => [...newItems, ...prev]);
   }
 
   async function handleClearHistory() {
@@ -1561,6 +1663,7 @@ export default function Home() {
                   error={r.error}
                   onDownload={() => handleDownload(r.audioUrl, r.voice)}
                   onPlay={handleAudioPlay}
+                  onSplit={r.status === "done" && r.audioBlob ? () => openSplitForResult(r) : undefined}
                 />
               ))}
             </div>
@@ -1620,12 +1723,25 @@ export default function Home() {
                   onDownload={() => handleDownload(h.audioUrl, h.voice)}
                   onDelete={() => handleDeleteHistoryItem(h.id)}
                   onPlay={handleAudioPlay}
+                  onSplit={h.segmentType && h.segmentType !== "SOURCE" ? undefined : () => openSplitForHistory(h)}
+                  segmentBadge={h.segmentType && h.segmentType !== "SOURCE" ? h.segmentType : undefined}
                 />
               ))}
             </div>
           )}
         </main>
       </div>
+
+      {splitTarget && (
+        <SplitModal
+          open={true}
+          onClose={() => setSplitTarget(null)}
+          sourceBlob={splitTarget.blob}
+          sourceUrl={splitTarget.url}
+          text={splitTarget.text}
+          onSave={handleSaveSplit}
+        />
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@ const DB_NAME = "tts-history";
 const DB_VERSION = 1;
 const STORE_NAME = "generations";
 
+export type SegmentType = "HOOK" | "BODY" | "CTA";
+
 export type HistoryEntry = {
   id: string;
   voice: string;
@@ -13,6 +15,10 @@ export type HistoryEntry = {
   text: string;
   audioBlob: Blob;
   createdAt: string; // ISO timestamp
+  // Split grouping: if present, this entry is either the original "source" or a derived segment.
+  groupId?: string;
+  segmentType?: SegmentType | "SOURCE";
+  parentId?: string; // for segments, points at the source entry
 };
 
 function openDB(): Promise<IDBDatabase> {
