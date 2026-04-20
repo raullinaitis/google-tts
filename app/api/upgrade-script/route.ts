@@ -47,7 +47,7 @@ Vague tone words like [confident], [impactful], [powerful] are too abstract for 
 - One tag per sentence maximum
 - Tag goes BEFORE the sentence it affects
 - Never tag the CTA — let it land flat and clean
-- Use CAPS inside the text for word-level emphasis instead of a tag — "It's DIRECTING" not "[emphatic] It's directing"
+- For word-level emphasis, use a tag adjacent to the key word ([serious], [slowly], [very slow], or [excited] before it). CAPS is allowed but is NOT a documented control — do not rely on it as the emphasis mechanism.
 - Use [pause] before your biggest line, not after
 - Too many tags = choppy, robotic output. Less is more.
 
