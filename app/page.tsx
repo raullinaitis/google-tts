@@ -233,6 +233,60 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 /* ════════════════════════════════════════════════════════════════ */
 
+const PODCAST_CONVERSATION_STYLE = `# AUDIO PROFILE: Jordan
+## "The Podcast Host"
+
+## THE SCENE: The Home Podcast Studio
+A cozy, soundproofed home studio with soft warm lighting. A quality condenser mic on a boom arm, coffee mug nearby. Jordan is relaxed but engaged, talking to an invisible audience through the mic. It's a Tuesday morning, mid-episode, and the conversation is flowing naturally.
+
+### DIRECTOR'S NOTES
+
+Style:
+* Conversational and authentic. This is a real person talking to listeners, not a script reader.
+* Natural filler words welcome - "like", "you know", "so basically" to keep it human.
+* Warm, approachable, genuine. The listener should feel like they're having coffee with a friend.
+* Occasional laugh or smile in the voice, but never forced.
+
+Pacing:
+* Medium-fast, natural conversational pace. Not rushed, but engaged and energetic.
+* Slight pauses between thoughts - just enough for the listener to absorb.
+* Speed up on excited topics, slow down for emphasis on key points.
+* Let breathing and natural inflection guide the delivery.
+
+Accent: General American, neutral, podcast-friendly. Clear articulation without pretension.
+
+### SAMPLE CONTEXT
+Jordan hosts a podcast where they discuss ideas, interview guests, and break down complex topics for curious listeners. The tone is always "two friends talking" - informed but accessible, passionate but not preachy.
+
+#### TRANSCRIPT`;
+
+const NEWS_BROADCASTER_STYLE = `# AUDIO PROFILE: Casey
+## "The News Anchor"
+
+## THE SCENE: The News Studio
+A professional broadcast studio with cool blue-gray lighting. Casey sits at the anchor desk, papers in front, eyes on the teleprompter but delivering with authority and presence. It's 6 PM, news hour, and the stakes are high - this information matters.
+
+### DIRECTOR'S NOTES
+
+Style:
+* Professional, authoritative, trustworthy. This is someone who knows the facts and delivers them with conviction.
+* Measured confidence - not melodramatic, but commanding attention.
+* Clear, precise diction. Every word lands with purpose.
+* Underlying warmth beneath the professionalism - not cold, but composed.
+
+Pacing:
+* Steady, deliberate pace. Slightly slower than normal conversation for clarity and impact.
+* Strategic pauses before important information - let it breathe.
+* Emphasis through tone and pace, not speed. Never sounds rushed or frantic.
+* Controlled cadence with natural variation - avoid monotone.
+
+Accent: Standard broadcast American English. Crisp, articulate, regionally neutral. Authoritative but accessible.
+
+### SAMPLE CONTEXT
+Casey is a seasoned news anchor who delivers breaking stories, investigations, and analysis to a national audience. The credibility comes from precision, pacing, and presence - making complex information clear and urgent without sensationalism.
+
+#### TRANSCRIPT`;
+
 const CHILL_CREATOR_STYLE = `# AUDIO PROFILE: Alex
 ## "The Chill Creator"
 
@@ -261,14 +315,21 @@ Alex hosts a creator-focused podcast where they break down tools, trends, and re
 const QUICK_PRESETS = {
   quick: {
     model: "gemini-3.1-flash-tts-preview",
-    modelLabel: "Pro",
-    voice: "Enceladus",
-    label: "Chill Creator",
-    customStyle: CHILL_CREATOR_STYLE,
+    modelLabel: "3.1 Flash",
+    voice: "Zubenelgenubi",
+    label: "Podcast",
+    customStyle: PODCAST_CONVERSATION_STYLE,
   },
   quick2: {
     model: "gemini-3.1-flash-tts-preview",
-    modelLabel: "Pro",
+    modelLabel: "3.1 Flash",
+    voice: "Zubenelgenubi",
+    label: "News",
+    customStyle: NEWS_BROADCASTER_STYLE,
+  },
+  quick3: {
+    model: "gemini-3.1-flash-tts-preview",
+    modelLabel: "3.1 Flash",
     voice: "Zubenelgenubi",
     label: "Chill Creator",
     customStyle: CHILL_CREATOR_STYLE,
@@ -276,7 +337,7 @@ const QUICK_PRESETS = {
 };
 
 export default function Home() {
-  const [mode, setMode] = useState<"quick" | "quick2" | "advanced">("quick");
+  const [mode, setMode] = useState<"quick" | "quick2" | "quick3" | "advanced">("quick");
   const [model, setModel] = useState(MODELS[0].id);
   const [selectedVoices, setSelectedVoices] = useState<string[]>([
     MALE_VOICES[0].name,
@@ -664,7 +725,7 @@ export default function Home() {
   const canQuickGenerate = !loading && !textTooLong && text.trim().length > 0;
 
   async function handleQuickGenerate() {
-    const preset = QUICK_PRESETS[mode as "quick" | "quick2"] ?? QUICK_PRESETS.quick;
+    const preset = QUICK_PRESETS[mode as "quick" | "quick2" | "quick3"] ?? QUICK_PRESETS.quick;
     setError("");
     results.forEach((r) => {
       if (r.audioUrl) URL.revokeObjectURL(r.audioUrl);
@@ -721,7 +782,7 @@ export default function Home() {
 
   async function handleUpgradeScript() {
     if (!text.trim() || upgrading) return;
-    const preset = QUICK_PRESETS[mode as "quick" | "quick2"] ?? QUICK_PRESETS.quick;
+    const preset = QUICK_PRESETS[mode as "quick" | "quick2" | "quick3"] ?? QUICK_PRESETS.quick;
     setUpgrading(true);
     setError("");
     try {
@@ -788,7 +849,7 @@ export default function Home() {
         >
           {/* Mode tabs */}
           <div className="flex gap-1 p-1 rounded-lg" style={{ background: "var(--bg-surface)" }}>
-            {([["quick", "Quick"], ["quick2", "Quick 2"], ["advanced", "Advanced"]] as const).map(([key, label]) => (
+            {([["quick", "Quick"], ["quick2", "Quick 2"], ["quick3", "Quick 3"], ["advanced", "Advanced"]] as const).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setMode(key)}
@@ -805,7 +866,7 @@ export default function Home() {
           </div>
 
           {/* ═══ QUICK MODE ═══ */}
-          {(mode === "quick" || mode === "quick2") && (
+          {(mode === "quick" || mode === "quick2" || mode === "quick3") && (
             <>
               {/* Preset info */}
               <div
