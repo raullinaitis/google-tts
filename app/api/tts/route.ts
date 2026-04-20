@@ -127,7 +127,15 @@ export async function POST(req: NextRequest) {
     console.error("First candidate:", data?.candidates?.[0]);
     console.error("Content:", data?.candidates?.[0]?.content);
     console.error("Parts:", data?.candidates?.[0]?.content?.parts);
-    return NextResponse.json({ error: "No audio returned from API - check logs" }, { status: 500 });
+    return NextResponse.json({
+      error: "No audio returned from API",
+      debug: {
+        candidates: data?.candidates?.length,
+        hasContent: !!data?.candidates?.[0]?.content,
+        hasParts: !!data?.candidates?.[0]?.content?.parts,
+        response: JSON.stringify(data).substring(0, 500)
+      }
+    }, { status: 500 });
   }
 
   try {
