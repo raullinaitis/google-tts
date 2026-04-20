@@ -110,18 +110,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    console.error("Failed to parse Gemini response:", e);
+    return NextResponse.json({ error: "Invalid response from Google API" }, { status: 500 });
+  }
 
   const pcmBase64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   if (!pcmBase64) {
+    console.error("No audio data in response:", JSON.stringify(data));
     return NextResponse.json({ error: "No audio returned from API" }, { status: 500 });
   }
 
-  // Convert PCM to WAV so browsers can play it natively
-  const wavBase64 = pcmToWav(pcmBase64);
-
-  return NextResponse.json({
-    audio: wavBase64,
-    mimeType: "audio/wav",
-  });
+  try {
+    const wavBase64 = pcmToWav(pcmBase64);
+    return NextResponse.json({
+      audio: wavBase64,
+      mimeType: "audio/wav",
+    });
+  } catch (e) {
+    console.error("Failed to convert PCM to WAV:", e);
+    return NextResponse.json({ error: "Failed to process audio data" }, { status: 500 });
+  }
 }
