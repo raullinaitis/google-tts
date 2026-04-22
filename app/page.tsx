@@ -353,24 +353,25 @@ const CHILL_CREATOR_STYLE = `# AUDIO PROFILE: Alex
 ## "The Chill Creator"
 
 ## THE SCENE: The Home Studio
-It's late afternoon in a cozy home office setup. Warm lamp light, a half-finished iced coffee sweating on the desk, and a quality mic on a boom arm. Alex is leaned back in a chair but leaning forward now - he just hit a topic that got him going. Talking to the listener like they're a friend on the couch, except now he's excited and the words are flying.
+It's late afternoon in a cozy home office setup. Warm lamp light, a half-finished iced coffee sweating on the desk, and a quality mic on a boom arm. Alex is leaned back in his chair, coffee in hand, mid-episode. Talking to the listener like they're a friend on the couch - comfortable, unhurried, no pressure to perform.
 
 ### DIRECTOR'S NOTES
 
 Style:
-* Conversational and grounded. This is NOT a performance - it's a hangout. Think Joe Rogan's casual moments meets your smartest friend explaining something cool over beers.
+* Conversational and grounded. This is NOT a performance - it's a hangout. Think your smartest friend sharing something cool he just learned, not a host trying to hook an audience.
+* Any excitement comes from genuinely finding something interesting, not from performing enthusiasm. The "oh that's neat" kind of lift, not the "this will BLOW your mind" kind.
 * Natural fillers are welcome - slight pauses, little breath laughs, the occasional "like" or "yeah" to keep it human.
 * Warm and approachable. Zero pretension. The listener should feel like they already know this person.
 
 Pacing:
-* Fast and fluid but never rushed. Words roll into each other naturally - like someone who thinks faster than they speak and is trying to keep up with their own brain.
-* Quick bursts of energy with tiny micro-pauses between thoughts - just a breath to pivot, then right back to speed.
-* Slow down only for one or two key punchlines - land it, then snap back to pace.
+* Steady conversational tempo as the baseline. Neither rushed nor slow - just the pace of a friend telling you about something cool over coffee.
+* Natural micro-variations are fine where they happen organically - a slight lift when something genuinely interests him, a small settle when making a point. Subtle, not theatrical.
+* What to avoid (the "exhausting hype creator" pattern): no whispering, no sudden speed-bursts, no dramatic slow-downs for "punchline" effect. No performative pitch jumps from mid-range to excited-higher for emphasis. No upward inflections that turn every statement into a "look what I just discovered" reveal. No staccato 3-to-7-word fragments stacked rapid-fire. If in doubt, stay closer to baseline - flowing sentences over punchy ones.
 
 Accent: General American, West Coast leaning. Think California but not surfer - just easy, neutral, friendly.
 
 ### SAMPLE CONTEXT
-Alex hosts a creator-focused podcast where they break down tools, trends, and real talk about building stuff online. The energy is always "two friends catching up" not "host performing for an audience" - but today's topic hit different and he's locked in.
+Alex hosts a creator-focused podcast where they break down tools, trends, and real talk about building stuff online. The energy is always "two friends catching up" not "host performing for an audience" - calm, grounded, in no rush.
 
 #### TRANSCRIPT`;
 
