@@ -182,7 +182,16 @@ function AudioCard({
         </div>
       )}
       {status === "error" && (
-        <p className="text-[10px]" style={{ color: "var(--danger)" }}>{error}</p>
+        <div
+          className="text-xs px-2 py-1.5 rounded border break-words select-all"
+          style={{
+            color: "var(--danger)",
+            borderColor: "var(--danger)",
+            background: "rgba(239, 68, 68, 0.08)",
+          }}
+        >
+          {error}
+        </div>
       )}
       {status === "done" && (
         <div className="space-y-1.5">
@@ -353,25 +362,25 @@ const CHILL_CREATOR_STYLE = `# AUDIO PROFILE: Alex
 ## "The Chill Creator"
 
 ## THE SCENE: The Home Studio
-It's late afternoon in a cozy home office setup. Warm lamp light, a half-finished iced coffee sweating on the desk, and a quality mic on a boom arm. Alex is leaned back in his chair, coffee in hand, mid-episode. Talking to the listener like they're a friend on the couch - comfortable, unhurried, no pressure to perform.
+A cozy home office with warm lamp light. Alex is leaned back in his chair, coffee in hand, talking to the listener through a quality mic. Mid-episode, unhurried, sharing something he finds interesting.
 
 ### DIRECTOR'S NOTES
 
 Style:
-* Conversational and grounded. This is NOT a performance - it's a hangout. Think your smartest friend sharing something cool he just learned, not a host trying to hook an audience.
-* Any excitement comes from genuinely finding something interesting, not from performing enthusiasm. The "oh that's neat" kind of lift, not the "this will BLOW your mind" kind.
-* Natural fillers are welcome - slight pauses, little breath laughs, the occasional "like" or "yeah" to keep it human.
-* Warm and approachable. Zero pretension. The listener should feel like they already know this person.
+* Casual and unhurried. A friend telling you about something cool they learned, not a host performing for an audience.
+* Warm and approachable. Natural filler words welcome - "like", "yeah", "you know" to keep it human.
+* Mild, genuine interest in the topic. The kind of lift you hear when someone tells a friend about a good book.
+* Zero pretension. The listener should feel like they already know this person.
 
 Pacing:
-* Steady conversational tempo as the baseline. Neither rushed nor slow - just the pace of a friend telling you about something cool over coffee.
-* Natural micro-variations are fine where they happen organically - a slight lift when something genuinely interests him, a small settle when making a point. Subtle, not theatrical.
-* What to avoid (the "exhausting hype creator" pattern): no whispering, no sudden speed-bursts, no dramatic slow-downs for "punchline" effect. No performative pitch jumps from mid-range to excited-higher for emphasis. No upward inflections that turn every statement into a "look what I just discovered" reveal. No staccato 3-to-7-word fragments stacked rapid-fire. If in doubt, stay closer to baseline - flowing sentences over punchy ones.
+* Easygoing conversational tempo. A little slower than a typical podcast host - Alex takes his time.
+* Small natural pauses between thoughts. Sentences flow into each other.
+* Steady delivery. Expression comes from warmth and curiosity, not from swings in volume or speed.
 
-Accent: General American, West Coast leaning. Think California but not surfer - just easy, neutral, friendly.
+Accent: General American, West Coast leaning. Easy, neutral, friendly.
 
 ### SAMPLE CONTEXT
-Alex hosts a creator-focused podcast where they break down tools, trends, and real talk about building stuff online. The energy is always "two friends catching up" not "host performing for an audience" - calm, grounded, in no rush.
+Alex hosts a creator-focused podcast where they discuss tools, trends, and ideas they're thinking about. The vibe is "two friends catching up over coffee" - curious, grounded, and comfortable.
 
 #### TRANSCRIPT`;
 

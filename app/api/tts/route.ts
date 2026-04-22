@@ -135,9 +135,12 @@ export async function POST(req: NextRequest) {
       promptChars: fullPrompt.length,
       rawResponse: data,
     }));
-    const detail = finishReason
+    const blockReason = promptFeedback?.blockReason;
+    const detail = blockReason
+      ? `Google blocked the prompt: ${blockReason}${promptFeedback?.blockReasonMessage ? ` — ${promptFeedback.blockReasonMessage}` : ""}`
+      : finishReason
       ? `finishReason=${finishReason}${textPart ? ` text="${textPart.slice(0, 200)}"` : ""}`
-      : "empty response";
+      : "empty response (no candidate, no block reason)";
     return NextResponse.json(
       { error: `No audio returned from API (${detail})` },
       { status: 500 }
