@@ -118,9 +118,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid response from Google API" }, { status: 500 });
   }
 
-  const pcmBase64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  const candidate = data?.candidates?.[0];
+  const pcmBase64 = candidate?.content?.parts?.[0]?.inlineData?.data;
   if (!pcmBase64) {
-    return NextResponse.json({ error: "No audio returned from API" }, { status: 500 });
+    const finishReason = candidate?.finishReason;
+    const safetyRatings = candidate?.safetyRatings;
+    const textPart = candidate?.content?.parts?.[0]?.text;
+    const promptFeedback = data?.promptFeedback;
+    console.error("Gemini TTS returned no audio:", JSON.stringify({
+      finishReason,
+      safetyRatings,
+      textPart,
+      promptFeedback,
+      model,
+      voice,
+      promptChars: fullPrompt.length,
+    }));
+    const detail = finishReason
+      ? `finishReason=${finishReason}${textPart ? ` text="${textPart.slice(0, 200)}"` : ""}`
+      : "empty response";
+    return NextResponse.json(
+      { error: `No audio returned from API (${detail})` },
+      { status: 500 }
+    );
   }
 
   try {
