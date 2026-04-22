@@ -133,6 +133,7 @@ export async function POST(req: NextRequest) {
       model,
       voice,
       promptChars: fullPrompt.length,
+      rawResponse: data,
     }));
     const detail = finishReason
       ? `finishReason=${finishReason}${textPart ? ` text="${textPart.slice(0, 200)}"` : ""}`
