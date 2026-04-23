@@ -385,9 +385,9 @@ Style:
 * Warm, confident, genuine. Coffee-with-a-friend vibe at high energy.
 
 Pacing:
-* Brisk delivery at ~180 words per minute. Energetic podcast host tempo.
-* Forward momentum - Jordan is excited to get to the next thought.
-* Crisp, info-dense phrasing with natural micro-beats between ideas.
+* Speaks at an energetic, high-momentum pace - the rapid, info-dense delivery of a top podcast host keeping listeners hooked through the whole episode.
+* Fluid transitions between ideas with no dead air and no gaps.
+* Natural micro-beats between thoughts, always moving forward to the next point.
 
 Accent: General American, neutral, podcast-friendly. Crisp articulation.
 
@@ -449,13 +449,23 @@ Alex hosts a creator-focused podcast where they discuss tools, trends, and ideas
 
 #### TRANSCRIPT`;
 
-const QUICK_PRESETS = {
+type QuickPreset = {
+  model: string;
+  modelLabel: string;
+  voice: string;
+  label: string;
+  customStyle: string;
+  transcriptTag?: string;
+};
+
+const QUICK_PRESETS: Record<"quick" | "quick2" | "quick3", QuickPreset> = {
   quick: {
     model: "gemini-3.1-flash-tts-preview",
     modelLabel: "3.1 Flash",
     voice: "Zubenelgenubi",
     label: "Podcast",
     customStyle: PODCAST_CONVERSATION_STYLE,
+    transcriptTag: "[fast]",
   },
   quick2: {
     model: "gemini-3.1-flash-tts-preview",
@@ -1054,6 +1064,8 @@ export default function Home() {
     }));
     setResults(newResults);
 
+    const transcriptText = preset.transcriptTag ? `${preset.transcriptTag} ${text}` : text;
+
     for (const result of newResults) {
       try {
         const res = await fetch("/api/tts", {
@@ -1064,7 +1076,7 @@ export default function Home() {
             voice: preset.voice,
             stylePreset: "",
             customStyle: preset.customStyle,
-            text,
+            text: transcriptText,
           }),
         });
         const data = await res.json();
