@@ -375,26 +375,24 @@ const PODCAST_CONVERSATION_STYLE = `# AUDIO PROFILE: Jordan
 ## "The Podcast Host"
 
 ## THE SCENE: The Home Podcast Studio
-A cozy, soundproofed home studio with soft warm lighting. A quality condenser mic on a boom arm, coffee mug nearby. Jordan is relaxed but engaged, talking to an invisible audience through the mic. It's a Tuesday morning, mid-episode, and the conversation is flowing naturally.
+A cozy, soundproofed home studio. A quality condenser mic on a boom arm, coffee mug nearby. Jordan is energized and dialed in, mid-episode, and the conversation is flying.
 
 ### DIRECTOR'S NOTES
 
 Style:
-* Conversational and authentic. This is a real person talking to listeners, not a script reader.
-* Natural filler words welcome - "like", "you know", "so basically" to keep it human.
-* Warm, approachable, genuine. The listener should feel like they're having coffee with a friend.
-* Occasional laugh or smile in the voice, but never forced.
+* Conversational and authentic - a real person talking to listeners.
+* Natural filler words welcome: "like", "you know", "so basically".
+* Warm, confident, genuine. Coffee-with-a-friend vibe at high energy.
 
 Pacing:
-* Medium-fast, natural conversational pace. Not rushed, but engaged and energetic.
-* Slight pauses between thoughts - just enough for the listener to absorb.
-* Speed up on excited topics, slow down for emphasis on key points.
-* Let breathing and natural inflection guide the delivery.
+* Brisk delivery at ~180 words per minute. Energetic podcast host tempo.
+* Forward momentum - Jordan is excited to get to the next thought.
+* Crisp, info-dense phrasing with natural micro-beats between ideas.
 
-Accent: General American, neutral, podcast-friendly. Clear articulation without pretension.
+Accent: General American, neutral, podcast-friendly. Crisp articulation.
 
 ### SAMPLE CONTEXT
-Jordan hosts a podcast where they discuss ideas, interview guests, and break down complex topics for curious listeners. The tone is always "two friends talking" - informed but accessible, passionate but not preachy.
+Jordan hosts a fast-moving podcast, breaking down ideas for curious listeners. Informed, accessible, high-energy - always moving forward.
 
 #### TRANSCRIPT`;
 
