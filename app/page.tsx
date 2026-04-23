@@ -11,10 +11,10 @@ import {
 import {
   saveGeneration,
   getAllGenerations,
+  updateGeneration,
   deleteGeneration,
   clearHistory,
   type HistoryEntry,
-  type SegmentType,
 } from "@/lib/history";
 import { SplitModal } from "./SplitModal";
 
@@ -63,7 +63,12 @@ type GeneratedAudio = {
   audioBlob?: Blob;
   status: "loading" | "done" | "error";
   error?: string;
+  customName?: string;
 };
+
+function sanitizeFilename(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_").slice(0, 80) || "audio";
+}
 
 type HistoryItem = HistoryEntry & {
   audioUrl: string;
@@ -104,6 +109,8 @@ function AudioCard({
   onPlay,
   onSplit,
   segmentBadge,
+  name,
+  onRename,
 }: {
   voice: string;
   modelLabel: string;
@@ -120,8 +127,23 @@ function AudioCard({
   onPlay?: (el: HTMLAudioElement) => void;
   onSplit?: () => void;
   segmentBadge?: string;
+  name?: string;
+  onRename?: (next: string) => void;
 }) {
   const [showStyle, setShowStyle] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(name ?? "");
+  useEffect(() => {
+    if (!editingName) setDraftName(name ?? "");
+  }, [name, editingName]);
+
+  function commitRename() {
+    setEditingName(false);
+    const trimmed = draftName.trim();
+    if (onRename && trimmed !== (name ?? "").trim()) {
+      onRename(trimmed);
+    }
+  }
 
   return (
     <div
@@ -143,6 +165,51 @@ function AudioCard({
             >
               {timestamp}
             </span>
+          )}
+          {onRename && (
+            <div className="min-w-0 flex-1">
+              {editingName ? (
+                <input
+                  type="text"
+                  autoFocus
+                  value={draftName}
+                  placeholder="Name this file"
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onBlur={commitRename}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitRename();
+                    if (e.key === "Escape") {
+                      setDraftName(name ?? "");
+                      setEditingName(false);
+                    }
+                  }}
+                  className="w-full bg-transparent outline-none text-[10px] font-medium px-1.5 py-0.5 rounded"
+                  style={{
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--accent)",
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => setEditingName(true)}
+                  className="max-w-full truncate text-[10px] font-medium px-1.5 py-0.5 rounded text-left"
+                  style={{
+                    color: name ? "var(--text-primary)" : "var(--text-muted)",
+                    border: "1px dashed transparent",
+                    background: "transparent",
+                  }}
+                  title="Click to rename"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border-subtle)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "transparent";
+                  }}
+                >
+                  {name && name.trim().length > 0 ? name : "+ Name file"}
+                </button>
+              )}
+            </div>
           )}
         </div>
         {onDelete && (
@@ -244,7 +311,7 @@ function AudioCard({
                   e.currentTarget.style.borderColor = "var(--border-subtle)";
                   e.currentTarget.style.color = "var(--text-secondary)";
                 }}
-                title="Split into HOOK / BODY / CTA"
+                title="Split into multiple files"
               >
                 <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
                   <path d="M3 2.75A.75.75 0 0 1 3.75 2h1.5a.75.75 0 0 1 0 1.5h-.75v9h.75a.75.75 0 0 1 0 1.5h-1.5A.75.75 0 0 1 3 13.25V2.75Zm4 0A.75.75 0 0 1 7.75 2h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Zm0 10.5A.75.75 0 0 1 7.75 13h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Zm3.75-10.5A.75.75 0 0 1 11.5 2h.75A.75.75 0 0 1 13 2.75v10.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h.75v-9h-.75a.75.75 0 0 1-.75-.75Z" />
@@ -454,7 +521,7 @@ export default function Home() {
         blob: Blob;
         url: string;
         text: string;
-        baseEntry: Omit<HistoryEntry, "id" | "audioBlob" | "createdAt" | "groupId" | "segmentType" | "parentId">;
+        baseEntry: Omit<HistoryEntry, "id" | "audioBlob" | "createdAt" | "groupId" | "segmentType" | "segmentIndex" | "segmentName" | "parentId" | "customName">;
         parentId: string;
       }
     | null
@@ -688,12 +755,30 @@ export default function Home() {
     prevLoadingRef.current = loading;
   }, [loading, results, saveResultsToHistory]);
 
-  function handleDownload(audioUrl: string, voice: string) {
+  function handleDownload(audioUrl: string, filename: string) {
     if (!audioUrl) return;
     const a = document.createElement("a");
     a.href = audioUrl;
-    a.download = `tts-${voice}-${Date.now()}.wav`;
+    const clean = sanitizeFilename(filename);
+    a.download = clean.toLowerCase().endsWith(".wav") ? clean : `${clean}.wav`;
     a.click();
+  }
+
+  function handleRenameResult(id: string, nextName: string) {
+    setResults((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, customName: nextName } : r))
+    );
+  }
+
+  async function handleRenameHistoryItem(id: string, nextName: string) {
+    setHistory((prev) =>
+      prev.map((h) => (h.id === id ? { ...h, customName: nextName } : h))
+    );
+    try {
+      await updateGeneration(id, { customName: nextName });
+    } catch (e) {
+      console.error("Failed to persist rename", e);
+    }
   }
 
   async function handleDeleteHistoryItem(id: string) {
@@ -742,21 +827,22 @@ export default function Home() {
     });
   }
 
-  async function handleSaveSplit(segments: { type: SegmentType; blob: Blob }[]) {
+  async function handleSaveSplit(segments: { name: string; blob: Blob }[]) {
     if (!splitTarget) return;
     const groupId = `grp-${Date.now()}`;
     const baseTime = Date.now();
     const newItems: HistoryItem[] = [];
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
-      const id = `${splitTarget.parentId}-${seg.type}-${baseTime + i}`;
+      const id = `${splitTarget.parentId}-part${i + 1}-${baseTime + i}`;
       const entry: HistoryEntry = {
         ...splitTarget.baseEntry,
         id,
         audioBlob: seg.blob,
         createdAt: new Date(baseTime + i).toISOString(),
         groupId,
-        segmentType: seg.type,
+        segmentIndex: i + 1,
+        segmentName: seg.name,
         parentId: splitTarget.parentId,
       };
       await saveGeneration(entry);
@@ -1892,22 +1978,28 @@ export default function Home() {
                   {loading ? "Generating" : "Output"}
                 </span>
               </div>
-              {results.map((r, i) => (
-                <AudioCard
-                  key={r.id}
-                  voice={r.voice}
-                  modelLabel={r.modelLabel}
-                  styleLabel={r.styleLabel}
-                  customStyle={r.customStyle}
-                  audioUrl={r.audioUrl}
-                  audioRef={i === 0 ? firstAudioRef : undefined}
-                  status={r.status}
-                  error={r.error}
-                  onDownload={() => handleDownload(r.audioUrl, r.voice)}
-                  onPlay={handleAudioPlay}
-                  onSplit={r.status === "done" && r.audioBlob ? () => openSplitForResult(r) : undefined}
-                />
-              ))}
+              {results.map((r, i) => {
+                const fallback = `tts-${r.voice}-${Date.now()}`;
+                const filename = r.customName && r.customName.trim().length > 0 ? r.customName : fallback;
+                return (
+                  <AudioCard
+                    key={r.id}
+                    voice={r.voice}
+                    modelLabel={r.modelLabel}
+                    styleLabel={r.styleLabel}
+                    customStyle={r.customStyle}
+                    audioUrl={r.audioUrl}
+                    audioRef={i === 0 ? firstAudioRef : undefined}
+                    status={r.status}
+                    error={r.error}
+                    onDownload={() => handleDownload(r.audioUrl, filename)}
+                    onPlay={handleAudioPlay}
+                    onSplit={r.status === "done" && r.audioBlob ? () => openSplitForResult(r) : undefined}
+                    name={r.customName}
+                    onRename={r.status === "done" ? (n) => handleRenameResult(r.id, n) : undefined}
+                  />
+                );
+              })}
             </div>
           )}
 
@@ -1955,8 +2047,10 @@ export default function Home() {
                 // Cluster by groupId. Non-grouped items render as singletons.
                 const rendered = new Set<string>();
                 const nodes: React.ReactNode[] = [];
-                const orderSegment = (t?: string) =>
+                const legacyOrder = (t?: string) =>
                   t === "HOOK" ? 0 : t === "BODY" ? 1 : t === "CTA" ? 2 : 3;
+                const segmentOrder = (entry: HistoryItem) =>
+                  typeof entry.segmentIndex === "number" ? entry.segmentIndex : legacyOrder(entry.segmentType) + 1000;
 
                 for (const h of history) {
                   if (rendered.has(h.id)) continue;
@@ -1964,7 +2058,7 @@ export default function Home() {
                   if (h.groupId) {
                     const siblings = history
                       .filter((x) => x.groupId === h.groupId)
-                      .sort((a, b) => orderSegment(a.segmentType) - orderSegment(b.segmentType));
+                      .sort((a, b) => segmentOrder(a) - segmentOrder(b));
                     siblings.forEach((s) => rendered.add(s.id));
 
                     const first = siblings[0];
@@ -2019,26 +2113,42 @@ export default function Home() {
                           </p>
                         )}
                         <div className="space-y-2">
-                          {siblings.map((s) => (
-                            <AudioCard
-                              key={s.id}
-                              voice={s.voice}
-                              modelLabel={s.modelLabel}
-                              styleLabel={s.styleLabel}
-                              customStyle={s.customStyle}
-                              audioUrl={s.audioUrl}
-                              status="done"
-                              onDownload={() => handleDownload(s.audioUrl, `${s.voice}-${s.segmentType}`)}
-                              onDelete={() => handleDeleteHistoryItem(s.id)}
-                              onPlay={handleAudioPlay}
-                              segmentBadge={s.segmentType && s.segmentType !== "SOURCE" ? s.segmentType : undefined}
-                            />
-                          ))}
+                          {siblings.map((s) => {
+                            const effectiveName =
+                              s.customName ||
+                              s.segmentName ||
+                              s.segmentType ||
+                              (typeof s.segmentIndex === "number" ? `Part ${s.segmentIndex}` : "");
+                            const filename = effectiveName
+                              ? `${s.voice}-${effectiveName}`
+                              : `${s.voice}-${Date.now()}`;
+                            const badge = s.segmentName || s.segmentType || (typeof s.segmentIndex === "number" ? `Part ${s.segmentIndex}` : undefined);
+                            return (
+                              <AudioCard
+                                key={s.id}
+                                voice={s.voice}
+                                modelLabel={s.modelLabel}
+                                styleLabel={s.styleLabel}
+                                customStyle={s.customStyle}
+                                audioUrl={s.audioUrl}
+                                status="done"
+                                onDownload={() => handleDownload(s.audioUrl, filename)}
+                                onDelete={() => handleDeleteHistoryItem(s.id)}
+                                onPlay={handleAudioPlay}
+                                segmentBadge={badge && badge !== "SOURCE" ? badge : undefined}
+                                name={s.customName}
+                                onRename={(n) => handleRenameHistoryItem(s.id, n)}
+                              />
+                            );
+                          })}
                         </div>
                       </div>
                     );
                   } else {
                     rendered.add(h.id);
+                    const filename = h.customName && h.customName.trim().length > 0
+                      ? h.customName
+                      : `tts-${h.voice}-${new Date(h.createdAt).getTime()}`;
                     nodes.push(
                       <AudioCard
                         key={h.id}
@@ -2050,10 +2160,12 @@ export default function Home() {
                         audioUrl={h.audioUrl}
                         status="done"
                         timestamp={timeAgo(h.createdAt)}
-                        onDownload={() => handleDownload(h.audioUrl, h.voice)}
+                        onDownload={() => handleDownload(h.audioUrl, filename)}
                         onDelete={() => handleDeleteHistoryItem(h.id)}
                         onPlay={handleAudioPlay}
                         onSplit={() => openSplitForHistory(h)}
+                        name={h.customName}
+                        onRename={(n) => handleRenameHistoryItem(h.id, n)}
                       />
                     );
                   }

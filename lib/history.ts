@@ -2,8 +2,6 @@ const DB_NAME = "tts-history";
 const DB_VERSION = 1;
 const STORE_NAME = "generations";
 
-export type SegmentType = "HOOK" | "BODY" | "CTA";
-
 export type HistoryEntry = {
   id: string;
   voice: string;
@@ -14,11 +12,14 @@ export type HistoryEntry = {
   customStyle: string;
   text: string;
   audioBlob: Blob;
-  createdAt: string; // ISO timestamp
-  // Split grouping: if present, this entry is either the original "source" or a derived segment.
+  createdAt: string;
+  customName?: string;
   groupId?: string;
-  segmentType?: SegmentType | "SOURCE";
-  parentId?: string; // for segments, points at the source entry
+  segmentIndex?: number;
+  segmentName?: string;
+  parentId?: string;
+  // Legacy field from prior HOOK/BODY/CTA scheme. Read-only — never written by current code.
+  segmentType?: string;
 };
 
 function openDB(): Promise<IDBDatabase> {
@@ -69,6 +70,31 @@ export async function getAllGenerations(): Promise<HistoryEntry[]> {
     tx.oncomplete = () => {
       db.close();
       resolve(results);
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
+
+export async function updateGeneration(id: string, patch: Partial<HistoryEntry>): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const existing = getReq.result as HistoryEntry | undefined;
+      if (!existing) {
+        resolve();
+        return;
+      }
+      store.put({ ...existing, ...patch, id: existing.id });
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
     };
     tx.onerror = () => {
       db.close();
