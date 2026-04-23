@@ -32,6 +32,14 @@ Use when you need a specific color no short tag captures:
 - [dry and deadpan]
 - Any descriptive direction that fits the moment
 
+**"Think moments"** (descriptive tags that simulate a real person thinking out loud — use these when the speaker shifts thought or circles back):
+- [like they just thought of it]
+- [catching themselves]
+- [beat of recognition]
+- [half-laughing mid-thought]
+- [as if realizing it out loud]
+These read far more natural than a bare [excited] or [curious] and keep the delivery feeling unscripted.
+
 **3. Experimental / avoid inline** (move to style prompt when possible)
 Vague tone words like [confident], [impactful], [powerful] are too abstract for reliable inline performance — set tone globally in the style prompt instead.
 
@@ -50,6 +58,10 @@ Vague tone words like [confident], [impactful], [powerful] are too abstract for 
 - For word-level emphasis, use a tag adjacent to the key word ([serious], [slowly], [very slow], or [excited] before it). CAPS is allowed but is NOT a documented control — do not rely on it as the emphasis mechanism.
 - Use [pause] before your biggest line, not after
 - Too many tags = choppy, robotic output. Less is more.
+
+## Breath and micro-pacing
+
+Real speakers breathe between phrases — they don't sprint from period to period. Use [short pause] sparingly inside long runs to create a natural breath beat. Aim for at most one [short pause] per paragraph-sized chunk; overuse flattens the delivery. These are separate from the big [pause] before your biggest line — those still belong only at the reveal.
 
 ---
 
@@ -74,7 +86,7 @@ If the script skips straight from hook to list to CTA with no quiet moment — a
 Return only the tagged script. No explanation, no labels, no commentary. Clean plain text, ready to paste into Gemini TTS.`;
 
 export async function POST(req: NextRequest) {
-  let body: { script: string; style: string };
+  let body: { script: string; style: string; presetLabel?: string };
 
   try {
     body = await req.json();
@@ -82,7 +94,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { script, style } = body;
+  const { script, style, presetLabel } = body;
 
   if (!script?.trim()) {
     return NextResponse.json({ error: "script is required" }, { status: 400 });
@@ -93,10 +105,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "API key not configured" }, { status: 500 });
   }
 
-  // Build the user prompt: include the style context so the tagger can optimize tags for it
-  const userPrompt = style?.trim()
-    ? `The TTS style instruction that will be used is:\n"${style}"\n\nTag this script to work best with that style:\n\n${script}`
-    : `Tag this script:\n\n${script}`;
+  const contextLines: string[] = [];
+  if (presetLabel?.trim()) {
+    contextLines.push(`Target preset: ${presetLabel.trim()}. Tag for the delivery style of a "${presetLabel.trim()}" voice.`);
+  }
+  if (style?.trim()) {
+    contextLines.push(`The TTS style instruction that will be used is:\n"${style}"`);
+  }
+  const context = contextLines.length > 0 ? contextLines.join("\n\n") + "\n\n" : "";
+  const userPrompt = `${context}Tag this script:\n\n${script}`;
 
   const requestBody = {
     system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },

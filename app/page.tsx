@@ -1140,6 +1140,7 @@ export default function Home() {
         body: JSON.stringify({
           script: text,
           style: preset.customStyle,
+          presetLabel: preset.label,
         }),
       });
       const data = await res.json();
